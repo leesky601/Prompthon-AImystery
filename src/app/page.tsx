@@ -465,7 +465,7 @@ export default function Home() {
                         </p>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
