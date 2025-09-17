@@ -1,0 +1,130 @@
+{
+  "bestProducts": [
+    {
+      "id": "1",
+      "name": "LG QNED TV (벽걸이형)",
+      "model": "86QNED70THA",
+      "size": "217cm",
+      "category": "QNED",
+      "tags": ["스탠드형", "벽걸이형"],
+      "originalPrice": 2890000,
+      "discountPrice": 2720000,
+      "discountRate": 30,
+      "monthlyPrice": 113333,
+      "image": "https://ext.same-assets.com/2158291103/809746982.jpeg",
+      "isBest": true,
+      "ranking": 1,
+      "badge": "으뜸효율환급 TV 1위",
+      "careship": true,
+      "subscription": true,
+      "salesCount": 1567,
+      "detailInfo": {
+        "memberDiscount": 1200000,
+        "couponDiscount": 70000,
+        "finalPrice": 1134600,
+        "monthlyPrice": 37750,
+        "monthlyDiscountPrice": 35000,
+        "cardMaxDiscount": 23000,
+        "monthlyFinalPrice": 12000
+      }
+    },
+    {
+      "id": "2",
+      "name": "LG 올레드 TV (스탠드형)",
+      "model": "OLED48B4ANA",
+      "size": "84\" / 120cm",
+      "tags": ["스탠드형", "벽걸이형"],
+      "originalPrice": 1690000,
+      "discountPrice": 1190000,
+      "discountRate": 20,
+      "monthlyPrice": 49583,
+      "image": "https://ext.same-assets.com/2158291103/2812149775.jpeg",
+      "isBest": true,
+      "ranking": 2,
+      "badge": "올레드 베스트셀러",
+      "careship": true,
+      "subscription": true,
+      "salesCount": 2341,
+      "detailInfo": {
+        "memberDiscount": 400000,
+        "couponDiscount": 100000,
+        "finalPrice": 1190000,
+        "monthlyPrice": 49583,
+        "monthlyDiscountPrice": 45000,
+        "cardMaxDiscount": 18000,
+        "monthlyFinalPrice": 27000
+      }
+    },
+    {
+      "id": "3",
+      "name": "LG 일반 LED TV (스탠드형)",
+      "model": "32LQ635BCNA",
+      "size": "80cm",
+      "originalPrice": 460000,
+      "discountPrice": 369000,
+      "discountRate": 19,
+      "monthlyPrice": 15375,
+      "image": "https://ext.same-assets.com/2158291103/1164128085.jpeg",
+      "isBest": true,
+      "ranking": 3,
+      "badge": "가성비 최고",
+      "careship": false,
+      "subscription": false,
+      "salesCount": 3456,
+      "detailInfo": {
+        "memberDiscount": 80000,
+        "couponDiscount": 11000,
+        "finalPrice": 369000,
+        "monthlyPrice": 15375,
+        "monthlyDiscountPrice": 0,
+        "cardMaxDiscount": 5000,
+        "monthlyFinalPrice": 0
+      }
+    },
+    {
+      "id": "4",
+      "name": "LG SIGNATURE OLED 8K",
+      "model": "OLED88Z3KNA",
+      "size": "Z3 / 222cm",
+      "tags": ["신품출하"],
+      "originalPrice": 111000000,
+      "discountPrice": 100000000,
+      "discountRate": 9,
+      "monthlyPrice": 4166666,
+      "image": "https://ext.same-assets.com/2158291103/1511966904.jpeg",
+      "isBest": true,
+      "ranking": 4,
+      "badge": "시그니처 프리미엄",
+      "careship": true,
+      "subscription": true,
+      "salesCount": 45,
+      "detailInfo": {
+        "memberDiscount": 5000000,
+        "couponDiscount": 6000000,
+        "finalPrice": 100000000,
+        "monthlyPrice": 4166666,
+        "monthlyDiscountPrice": 3900000,
+        "cardMaxDiscount": 100000,
+        "monthlyFinalPrice": 3800000
+      }
+    }
+  ],
+  "promotionalBanners": [
+    {
+      "id": "banner1",
+      "title": "올레드 으뜸 페스타",
+      "subtitle": "최대 100만원 캐시백부터 VOD 혜택까지",
+      "image": "https://page.gensparksite.com/v1/base64_upload/b85587ec12f3e8c5b9539715852d3bd7",
+      "backgroundColor": "banner-gradient-blue",
+      "hasAIChat": true
+    },
+    {
+      "id": "banner2",
+      "title": "TV + 사운드바 세트 기획전",
+      "subtitle": "포토리뷰 작성 시 3만 멜페이심 포인트 증정",
+      "image": "https://page.gensparksite.com/v1/base64_upload/47da7607db7694fa049da8d71456c209",
+      "backgroundColor": "banner-gradient-orange",
+      "hasAIChat": false
+    }
+  ]
+}

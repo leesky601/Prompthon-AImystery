@@ -5,64 +5,12 @@ import { Search, User, ShoppingCart, Menu, ChevronDown, ChevronRight, Heart, Sli
 import Image from 'next/image';
 import Link from 'next/link';
 
-// Product data
+// Import JSON data
+import productsData from '../data/products.json';
+
+// Product data from JSON with additional products for grid
 const products = [
-  {
-    id: '1',
-    name: 'LG QNED TV (벽걸이형)',
-    model: '86QNED70THA',
-    size: '217cm',
-    category: 'QNED',
-    tags: ['스탠드형', '벽걸이형'],
-    originalPrice: 2890000,
-    discountPrice: 2720000,
-    discountRate: 30,
-    monthlyPrice: 113333,
-    image: 'https://ext.same-assets.com/2158291103/809746982.jpeg',
-    isBest: true,
-    ranking: 1
-  },
-  {
-    id: '2',
-    name: 'LG 올레드 TV (스탠드형)',
-    model: 'OLED48B4ANA',
-    size: '84" / 120cm',
-    tags: ['스탠드형', '벽걸이형'],
-    originalPrice: 1690000,
-    discountPrice: 1190000,
-    discountRate: 20,
-    monthlyPrice: 49583,
-    image: 'https://ext.same-assets.com/2158291103/2812149775.jpeg',
-    isBest: true,
-    ranking: 2
-  },
-  {
-    id: '3',
-    name: 'LG 일반 LED TV (스탠드형)',
-    model: '32LQ635BCNA',
-    size: '80cm',
-    originalPrice: 460000,
-    discountPrice: 369000,
-    discountRate: 19,
-    monthlyPrice: 15375,
-    image: 'https://ext.same-assets.com/2158291103/1164128085.jpeg',
-    isBest: true,
-    ranking: 3
-  },
-  {
-    id: '4',
-    name: 'LG SIGNATURE OLED 8K',
-    model: 'OLED88Z3KNA',
-    size: 'Z3 / 222cm',
-    tags: ['신품출하'],
-    originalPrice: 111000000,
-    discountPrice: 100000000,
-    discountRate: 9,
-    monthlyPrice: 4166666,
-    image: 'https://ext.same-assets.com/2158291103/1511966904.jpeg',
-    isBest: true,
-    ranking: 4
-  },
+  ...productsData.bestProducts,
   {
     id: '5',
     name: 'LG 스마트 캠',
@@ -263,41 +211,26 @@ export default function Home() {
 
       {/* Main Banners */}
       <div className="max-w-[1440px] mx-auto px-4 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Banner 1 */}
-          <div className="relative banner-gradient-orange rounded-lg overflow-hidden h-[300px] cursor-pointer group">
-            <div className="absolute inset-0 flex items-center justify-between p-8 group-hover:scale-[1.02] transition-transform duration-300">
-              <div className="text-white">
-                <h2 className="text-2xl font-bold mb-2">TV + 사운드바 세트 기획전</h2>
-                <p className="text-gray-200">포토리뷰 작성 시 3만 엘페이심 포인트 증정</p>
-              </div>
-              <div className="w-1/2 h-full relative">
-                <img
-                  src="https://ext.same-assets.com/2158291103/699828250.png"
-                  alt="TV and Soundbar"
-                  className="absolute right-0 bottom-0 h-full object-contain"
-                />
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          {/* Banner 1 - 올레드 으뜸 페스타 */}
+          <div className="relative banner-gradient-blue rounded-lg overflow-hidden h-[300px] cursor-pointer group">
+            <div className="absolute inset-0 group-hover:scale-[1.02] transition-transform duration-300">
+              <img
+                src="https://page.gensparksite.com/v1/base64_upload/b42b02f53244bc4de4f1e3998b05af1b"
+                alt="올레드 으뜸 페스타"
+                className="w-full h-full object-cover rounded-lg"
+              />
             </div>
           </div>
 
-          {/* Banner 2 */}
-          <div className="relative banner-gradient-blue rounded-lg overflow-hidden h-[300px] cursor-pointer group">
-            <div className="absolute inset-0 flex items-center justify-between p-8 group-hover:scale-[1.02] transition-transform duration-300">
-              <div className="text-white">
-                <h2 className="text-2xl font-bold mb-2">올레드 으뜸 페스타</h2>
-                <p className="text-gray-200">최대 100만원 캐시백부터 VOD까지</p>
-                <span className="inline-block mt-2 px-3 py-1 bg-pink-500 text-white text-sm rounded-full">
-                  AI Chat
-                </span>
-              </div>
-              <div className="w-1/2 h-full relative">
-                <img
-                  src="https://ext.same-assets.com/2158291103/570148605.png"
-                  alt="OLED Festival"
-                  className="absolute right-0 bottom-0 h-full object-contain"
-                />
-              </div>
+          {/* Banner 2 - TV + 사운드바 세트 기획전 */}
+          <div className="relative banner-gradient-orange rounded-lg overflow-hidden h-[300px] cursor-pointer group">
+            <div className="absolute inset-0 group-hover:scale-[1.02] transition-transform duration-300">
+              <img
+                src="https://page.gensparksite.com/v1/base64_upload/b27ac80cc9a62999056ee9c1eec6c2ac"
+                alt="TV + 사운드바 세트 기획전"
+                className="w-full h-full object-cover rounded-lg"
+              />
             </div>
           </div>
         </div>
@@ -421,7 +354,7 @@ export default function Home() {
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-6">베스트랭킹</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {products.filter(p => p.isBest).map((product) => (
+                {productsData.bestProducts.map((product) => (
                   <Link key={product.id} href={`/product/${product.id}`} className="product-card bg-white rounded-lg overflow-hidden group cursor-pointer">
                     <div className="relative">
                       {product.ranking && (
@@ -437,7 +370,10 @@ export default function Home() {
                         />
                       </div>
                       <button
-                        onClick={() => toggleWishlist(product.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleWishlist(product.id);
+                        }}
                         className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-shadow"
                       >
                         <Heart
@@ -465,7 +401,7 @@ export default function Home() {
                         </p>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
