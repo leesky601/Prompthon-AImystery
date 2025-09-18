@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
           }, 2000);
         }
       }
-    }, 10000); // Every 10 seconds
+    }, 5000); // Every 5 seconds
 
     return () => clearInterval(animationInterval);
   }, [mousePosition, isButtonMoving]);
