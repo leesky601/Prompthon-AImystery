@@ -211,27 +211,23 @@ export default function Home() {
 
       {/* Main Banners */}
       <div className="max-w-[1440px] mx-auto px-4 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {/* Banner 1 - 올레드 으뜸 페스타 */}
-          <div className="relative banner-gradient-blue rounded-lg overflow-hidden h-[300px] cursor-pointer group">
-            <div className="absolute inset-0 group-hover:scale-[1.02] transition-transform duration-300">
-              <img
-                src="https://page.gensparksite.com/v1/base64_upload/b42b02f53244bc4de4f1e3998b05af1b"
-                alt="올레드 으뜸 페스타"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
+          <div className="relative rounded-lg overflow-hidden h-[300px] cursor-pointer">
+            <img
+              src="https://page.gensparksite.com/v1/base64_upload/e6f451fb1d8c597e8e71992cfa0ac07d"
+              alt="올레드 으뜸 페스타"
+              className="w-full h-full object-cover rounded-lg"
+            />
           </div>
 
           {/* Banner 2 - TV + 사운드바 세트 기획전 */}
-          <div className="relative banner-gradient-orange rounded-lg overflow-hidden h-[300px] cursor-pointer group">
-            <div className="absolute inset-0 group-hover:scale-[1.02] transition-transform duration-300">
-              <img
-                src="https://page.gensparksite.com/v1/base64_upload/b27ac80cc9a62999056ee9c1eec6c2ac"
-                alt="TV + 사운드바 세트 기획전"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
+          <div className="relative rounded-lg overflow-hidden h-[300px] cursor-pointer">
+            <img
+              src="https://page.gensparksite.com/v1/base64_upload/543e9b6ec24044d37f1860909d2546c2"
+              alt="TV + 사운드바 세트 기획전"
+              className="w-full h-full object-cover rounded-lg"
+            />
           </div>
         </div>
       </div>
