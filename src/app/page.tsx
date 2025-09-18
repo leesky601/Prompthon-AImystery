@@ -213,21 +213,25 @@ export default function Home() {
       <div className="max-w-[1440px] mx-auto px-4 pb-8">
         <div className="grid grid-cols-2 gap-4">
           {/* Banner 1 - 올레드 으뜸 페스타 */}
-          <div className="relative rounded-lg overflow-hidden h-[300px] cursor-pointer">
-            <img
-              src="https://page.gensparksite.com/v1/base64_upload/e6f451fb1d8c597e8e71992cfa0ac07d"
-              alt="올레드 으뜸 페스타"
-              className="w-full h-full object-cover rounded-lg"
-            />
+          <div className="relative rounded-lg overflow-hidden cursor-pointer">
+            <div className="aspect-[975/630]">
+              <img
+                src="https://page.gensparksite.com/v1/base64_upload/e6f451fb1d8c597e8e71992cfa0ac07d"
+                alt="올레드 으뜸 페스타"
+                className="w-full h-full object-contain rounded-lg"
+              />
+            </div>
           </div>
 
           {/* Banner 2 - TV + 사운드바 세트 기획전 */}
-          <div className="relative rounded-lg overflow-hidden h-[300px] cursor-pointer">
-            <img
-              src="https://page.gensparksite.com/v1/base64_upload/543e9b6ec24044d37f1860909d2546c2"
-              alt="TV + 사운드바 세트 기획전"
-              className="w-full h-full object-cover rounded-lg"
-            />
+          <div className="relative rounded-lg overflow-hidden cursor-pointer">
+            <div className="aspect-[975/630]">
+              <img
+                src="https://page.gensparksite.com/v1/base64_upload/543e9b6ec24044d37f1860909d2546c2"
+                alt="TV + 사운드바 세트 기획전"
+                className="w-full h-full object-contain rounded-lg"
+              />
+            </div>
           </div>
         </div>
       </div>
