@@ -95,9 +95,10 @@
     box-shadow: 0 8px 20px rgba(107,58,166,0.4);
   }
 
-  /* Side button specific styles - no ::before pseudo element */
-  .subscribe-debate-side-btn {
-    /* All styles are inline to avoid CSS conflicts */
+  /* Side button specific styles - override ::before to prevent duplicate text */
+  .subscribe-debate-side-btn::before {
+    content: none !important;
+    display: none !important;
   }
 
   @keyframes pulse {

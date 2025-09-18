@@ -94,6 +94,8 @@ export default function ProductDetailPage() {
   }, []);
 
   // Button animation effect - moves to mouse every 8 seconds
+  // Animation cycle: 1.8s move to mouse → 1.8s return to origin = 3.6s total
+  // Then waits 4.4s before next cycle (3.6s + 4.4s = 8s interval)
   useEffect(() => {
     let animationInterval: NodeJS.Timeout;
     let returnTimeout: NodeJS.Timeout;
@@ -123,18 +125,18 @@ export default function ProductDetailPage() {
           setButtonPosition({ x: 0, y: 0 });
         }, 1800);
         
-        // Reset moving flag after complete animation cycle (3.6 seconds total)
+        // Reset moving flag after complete animation cycle (3.6 seconds = 1.8s move + 1.8s return)
         resetTimeout = setTimeout(() => {
           setIsButtonMoving(false);
         }, 3600);
       }
     };
 
-    // Start first animation after 500ms
+    // Start first animation after 500ms initial delay
     const initialTimeout = setTimeout(() => {
       performAnimation();
       
-      // Then repeat exactly every 8 seconds (3.6s animation + 4.4s waiting)
+      // Then repeat exactly every 8 seconds
       animationInterval = setInterval(performAnimation, 8000);
     }, 500);
 
