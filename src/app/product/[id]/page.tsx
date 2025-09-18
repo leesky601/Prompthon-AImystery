@@ -39,6 +39,11 @@ export default function ProductDetailPage() {
   const [showCareshipInfo, setShowCareshipInfo] = useState(false);
   const [showARInfo, setShowARInfo] = useState(false);
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
+  
+  // Mouse tracking and button animation states
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
+  const [isButtonMoving, setIsButtonMoving] = useState(false);
 
   // Get product data from JSON based on ID
   const productData = productsData.bestProducts.find(product => product.id === params.id) || productsData.bestProducts[0];
@@ -81,6 +86,53 @@ export default function ProductDetailPage() {
   const handleImageChange = (index: number) => {
     setCurrentImageIndex(index);
   };
+
+  // Mouse tracking effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Button animation effect - moves to mouse every 10 seconds
+  useEffect(() => {
+    const animationInterval = setInterval(() => {
+      if (!isButtonMoving) {
+        setIsButtonMoving(true);
+        
+        // Calculate relative position from button's original location
+        const buttonElement = document.querySelector('.subscribe-debate-detail-btn') as HTMLElement;
+        if (buttonElement) {
+          const buttonRect = buttonElement.getBoundingClientRect();
+          const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+          const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+          
+          // Calculate offset to mouse position with some easing
+          const targetX = (mousePosition.x - buttonCenterX) * 0.8; // 80% of the distance for smoother movement
+          const targetY = (mousePosition.y - buttonCenterY) * 0.8;
+          
+          // Move to mouse position with smooth animation
+          setButtonPosition({
+            x: targetX,
+            y: targetY
+          });
+
+          // Return to original position after 2 seconds
+          setTimeout(() => {
+            setButtonPosition({ x: 0, y: 0 });
+            setTimeout(() => {
+              setIsButtonMoving(false);
+            }, 1500); // Wait for return animation to complete
+          }, 2000);
+        }
+      }
+    }, 10000); // Every 10 seconds
+
+    return () => clearInterval(animationInterval);
+  }, [mousePosition, isButtonMoving]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -234,6 +286,16 @@ export default function ProductDetailPage() {
                 <button
                   onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
                   className="subscribe-debate-detail-btn"
+                  style={{
+                    transform: `translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
+                    transition: isButtonMoving 
+                      ? 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)' 
+                      : 'transform 1.5s cubic-bezier(0.23, 1, 0.32, 1)',
+                    zIndex: isButtonMoving ? 9999 : 'auto',
+                    boxShadow: isButtonMoving 
+                      ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
+                      : '0 8px 20px rgba(107,58,166,0.2)'
+                  }}
                 >
                   구독 할래말래?
                 </button>
