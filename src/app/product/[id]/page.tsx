@@ -93,45 +93,100 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Button animation effect - moves to mouse every 10 seconds
+  // Button animation effect - moves to mouse exactly every 3 seconds
   useEffect(() => {
-    const animationInterval = setInterval(() => {
-      if (!isButtonMoving) {
-        setIsButtonMoving(true);
+    let animationInterval: NodeJS.Timeout;
+    let returnTimeout: NodeJS.Timeout;
+    let resetTimeout: NodeJS.Timeout;
+    
+    // Function to perform animation
+    const performAnimation = () => {
+      const buttonElement = document.querySelector('.subscribe-debate-side-btn') as HTMLElement;
+      if (buttonElement) {
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+        const buttonCenterY = buttonRect.top + buttonRect.height / 2;
         
-        // Calculate relative position from button's original location
-        const buttonElement = document.querySelector('.subscribe-debate-detail-btn') as HTMLElement;
-        if (buttonElement) {
-          const buttonRect = buttonElement.getBoundingClientRect();
-          const buttonCenterX = buttonRect.left + buttonRect.width / 2;
-          const buttonCenterY = buttonRect.top + buttonRect.height / 2;
-          
-          // Calculate offset to mouse position with some easing
-          const targetX = (mousePosition.x - buttonCenterX) * 0.8; // 80% of the distance for smoother movement
-          const targetY = (mousePosition.y - buttonCenterY) * 0.8;
-          
-          // Move to mouse position with smooth animation
-          setButtonPosition({
-            x: targetX,
-            y: targetY
-          });
+        // Calculate offset to mouse position with easing
+        const targetX = (mousePosition.x - buttonCenterX) * 0.9;
+        const targetY = (mousePosition.y - buttonCenterY) * 0.9;
+        
+        // Set moving state and move to mouse position
+        setIsButtonMoving(true);
+        setButtonPosition({
+          x: targetX,
+          y: targetY
+        });
 
-          // Return to original position after 2 seconds
-          setTimeout(() => {
-            setButtonPosition({ x: 0, y: 0 });
-            setTimeout(() => {
-              setIsButtonMoving(false);
-            }, 1500); // Wait for return animation to complete
-          }, 2000);
+        // Return to original position after 1.2 seconds
+        returnTimeout = setTimeout(() => {
+          setButtonPosition({ x: 0, y: 0 });
+        }, 1200);
+        
+        // Reset moving flag after complete animation cycle
+        resetTimeout = setTimeout(() => {
+          setIsButtonMoving(false);
+        }, 2400);
+      }
+    };
+
+    // Start first animation after 500ms
+    const initialTimeout = setTimeout(() => {
+      performAnimation();
+      
+      // Then repeat exactly every 3 seconds
+      animationInterval = setInterval(performAnimation, 3000);
+    }, 500);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(initialTimeout);
+      clearTimeout(returnTimeout);
+      clearTimeout(resetTimeout);
+      clearInterval(animationInterval);
+    };
+  }, [mousePosition]); // Only depend on mouse position
+  
+  // Update mouse position separately
+  useEffect(() => {
+    if (!isButtonMoving) {
+      const buttonElement = document.querySelector('.subscribe-debate-side-btn') as HTMLElement;
+      if (buttonElement) {
+        const buttonRect = buttonElement.getBoundingClientRect();
+        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
+        const buttonCenterY = buttonRect.top + buttonRect.height / 2;
+        
+        const targetX = (mousePosition.x - buttonCenterX) * 0.7;
+        const targetY = (mousePosition.y - buttonCenterY) * 0.7;
+        
+        // Store the target position for next animation
+        if (isButtonMoving) {
+          setButtonPosition({ x: targetX, y: targetY });
         }
       }
-    }, 5000); // Every 5 seconds
-
-    return () => clearInterval(animationInterval);
+    }
   }, [mousePosition, isButtonMoving]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative">
+      {/* Fixed Subscription Button on Right Side */}
+      {productInfo.subscription && (
+        <button
+          onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
+          className="subscribe-debate-side-btn fixed right-8 top-1/2 -translate-y-1/2 z-50 hidden xl:block"
+          style={{
+            transform: `translateY(-50%) translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
+            transition: isButtonMoving 
+              ? 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)' 
+              : 'transform 1.5s cubic-bezier(0.23, 1, 0.32, 1)',
+            boxShadow: isButtonMoving 
+              ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
+              : '0 8px 20px rgba(107,58,166,0.2)'
+          }}
+        >
+          구독 할래말래?
+        </button>
+      )}
       {/* Header */}
       <header className="w-full bg-white border-b sticky top-0 z-40">
         {/* Top bar */}
@@ -272,31 +327,13 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Product Title & Subscription Button */}
+            {/* Product Title */}
             <div>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <h1 className="text-[28px] leading-tight font-bold text-[#333] mb-1">{productInfo.name}</h1>
                   <p className="text-lg text-[#666]">{productInfo.size}</p>
                 </div>
-                {productInfo.subscription && (
-                  <button
-                    onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
-                    className="subscribe-debate-detail-btn flex-shrink-0 mt-1"
-                    style={{
-                      transform: `translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
-                      transition: isButtonMoving 
-                        ? 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)' 
-                        : 'transform 1.5s cubic-bezier(0.23, 1, 0.32, 1)',
-                      zIndex: isButtonMoving ? 9999 : 'auto',
-                      boxShadow: isButtonMoving 
-                        ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
-                        : '0 8px 20px rgba(107,58,166,0.2)'
-                    }}
-                  >
-                    구독 할래말래?
-                  </button>
-                )}
               </div>
 
               {/* Sales Counter */}
@@ -732,6 +769,75 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Fixed Side Subscription Button - Only visible on larger screens */}
+      {productInfo.subscription && (
+        <div
+          className="hidden xl:block"
+          style={{
+            position: 'fixed',
+            right: '30px',
+            top: '50%',
+            transform: `translateY(-50%) translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
+            transition: isButtonMoving 
+              ? 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1)' 
+              : 'transform 1s cubic-bezier(0.23, 1, 0.32, 1)',
+            zIndex: isButtonMoving ? 9999 : 1000,
+            willChange: 'transform'
+          }}
+        >
+          {/* Floating text */}
+          <span 
+            style={{
+              position: 'absolute',
+              top: '-25px',
+              right: '10px',
+              fontSize: '11px',
+              color: 'rgba(107, 58, 166, 0.9)',
+              fontWeight: 'bold',
+              whiteSpace: 'nowrap',
+              animation: 'float 3s ease-in-out infinite'
+            }}
+          >
+            적절하긴해~
+          </span>
+          
+          <button
+            onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
+            className="subscribe-debate-side-btn"
+            style={{
+              boxShadow: isButtonMoving 
+                ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
+                : '0 8px 20px rgba(107,58,166,0.2)',
+              background: 'linear-gradient(135deg, #6B3AA6, #00A9CE)',
+              color: 'white',
+              padding: '14px 32px',
+              borderRadius: '28px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: '2px solid transparent',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              minWidth: '150px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #00A9CE, #6B3AA6)';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, #6B3AA6, #00A9CE)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            구독 할래말래?
+          </button>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white mt-20">
