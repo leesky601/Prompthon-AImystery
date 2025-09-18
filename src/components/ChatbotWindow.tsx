@@ -197,7 +197,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
               <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-75"></div>
               <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse delay-150"></div>
             </div>
-            <h2 className="text-xl font-bold">LG 가전 구매/구독 결정 도우미</h2>
+            <h2 className="text-xl font-bold">가전 구독 할래말래?</h2>
           </div>
           <button
             onClick={onClose}
