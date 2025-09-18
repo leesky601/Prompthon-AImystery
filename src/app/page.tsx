@@ -408,10 +408,10 @@ export default function Home() {
                         onClick={(e) => {
                           e.preventDefault();
                           const productLinks: { [key: string]: string } = {
-                            '1': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=0',
-                            '2': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=1', 
-                            '3': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=2',
-                            '4': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=3'
+                            '1': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=0',
+                            '2': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=1', 
+                            '3': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=2',
+                            '4': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=3'
                           };
                           const link = productLinks[product.id] || productLinks['1']; // 기본값은 첫 번째 제품
                           window.open(link, '_blank', 'noopener,noreferrer');
