@@ -91,11 +91,10 @@ export default function ProductDetailPage() {
           <div className="relative">
             {/* Left side text - "애매하긴해~" */}
             <span 
-              className="animate-blink-left absolute -left-16 -top-6 text-sm font-medium whitespace-nowrap"
+              className="animate-blink-left absolute -left-20 -top-8 text-sm font-medium whitespace-nowrap"
               style={{
                 color: '#8B5CF6',
-                textShadow: '0 1px 3px rgba(139, 92, 246, 0.3)',
-                animationDelay: '0s'
+                textShadow: '0 1px 3px rgba(139, 92, 246, 0.3)'
               }}
             >
               애매하긴해~
@@ -103,11 +102,11 @@ export default function ProductDetailPage() {
             
             {/* Right side text - "적절하긴해~" */}
             <span 
-              className="animate-blink-right absolute -right-16 -top-6 text-sm font-medium whitespace-nowrap"
+              className="animate-blink-right absolute -right-10 -top-8 text-sm font-medium whitespace-nowrap"
               style={{
                 color: '#06B6D4',
                 textShadow: '0 1px 3px rgba(6, 182, 212, 0.3)',
-                animationDelay: '1.5s'
+                transform: 'translateX(-50%)' // 화면 밖으로 나가지 않도록 조정
               }}
             >
               적절하긴해~

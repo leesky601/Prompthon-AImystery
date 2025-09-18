@@ -119,21 +119,21 @@
     }
   }
 
-  /* Blinking animations for debate texts */
+  /* Blinking animations for debate texts - alternating display */
   @keyframes blink-left {
-    0% { opacity: 0; transform: translateY(-2px) scale(0.95); }
-    15% { opacity: 1; transform: translateY(0px) scale(1); }
-    35% { opacity: 1; transform: translateY(0px) scale(1); }
-    50% { opacity: 0; transform: translateY(-2px) scale(0.95); }
-    100% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+    0% { opacity: 0; transform: translateY(-3px) scale(0.9); }
+    10% { opacity: 1; transform: translateY(0px) scale(1); }
+    40% { opacity: 1; transform: translateY(0px) scale(1); }
+    50% { opacity: 0; transform: translateY(-3px) scale(0.9); }
+    100% { opacity: 0; transform: translateY(-3px) scale(0.9); }
   }
 
   @keyframes blink-right {
-    0% { opacity: 0; transform: translateY(-2px) scale(0.95); }
-    50% { opacity: 0; transform: translateY(-2px) scale(0.95); }
-    65% { opacity: 1; transform: translateY(0px) scale(1); }
-    85% { opacity: 1; transform: translateY(0px) scale(1); }
-    100% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+    0% { opacity: 0; transform: translateY(-3px) scale(0.9); }
+    50% { opacity: 0; transform: translateY(-3px) scale(0.9); }
+    60% { opacity: 1; transform: translateY(0px) scale(1); }
+    90% { opacity: 1; transform: translateY(0px) scale(1); }
+    100% { opacity: 0; transform: translateY(-3px) scale(0.9); }
   }
 
   /* Custom scrollbar */
