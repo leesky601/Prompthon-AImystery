@@ -93,7 +93,7 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // Button animation effect - moves to mouse exactly every 3 seconds
+  // Button animation effect - moves to mouse every 8 seconds
   useEffect(() => {
     let animationInterval: NodeJS.Timeout;
     let returnTimeout: NodeJS.Timeout;
@@ -118,15 +118,15 @@ export default function ProductDetailPage() {
           y: targetY
         });
 
-        // Return to original position after 1.2 seconds
+        // Return to original position after 1.8 seconds
         returnTimeout = setTimeout(() => {
           setButtonPosition({ x: 0, y: 0 });
-        }, 1200);
+        }, 1800);
         
-        // Reset moving flag after complete animation cycle
+        // Reset moving flag after complete animation cycle (3.6 seconds total)
         resetTimeout = setTimeout(() => {
           setIsButtonMoving(false);
-        }, 2400);
+        }, 3600);
       }
     };
 
@@ -134,8 +134,8 @@ export default function ProductDetailPage() {
     const initialTimeout = setTimeout(() => {
       performAnimation();
       
-      // Then repeat exactly every 3 seconds
-      animationInterval = setInterval(performAnimation, 3000);
+      // Then repeat exactly every 8 seconds (3.6s animation + 4.4s waiting)
+      animationInterval = setInterval(performAnimation, 8000);
     }, 500);
 
     // Cleanup function
@@ -780,8 +780,8 @@ export default function ProductDetailPage() {
             top: '50%',
             transform: `translateY(-50%) translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
             transition: isButtonMoving 
-              ? 'transform 0.8s cubic-bezier(0.23, 1, 0.32, 1)' 
-              : 'transform 1s cubic-bezier(0.23, 1, 0.32, 1)',
+              ? 'transform 1.8s cubic-bezier(0.23, 1, 0.32, 1)' 
+              : 'transform 1.8s cubic-bezier(0.23, 1, 0.32, 1)',
             zIndex: isButtonMoving ? 9999 : 1000,
             willChange: 'transform'
           }}
