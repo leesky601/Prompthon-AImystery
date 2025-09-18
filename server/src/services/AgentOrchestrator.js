@@ -62,10 +62,15 @@ class AgentOrchestrator {
   // Process user message and orchestrate agent responses
   async processUserMessage(sessionId, userMessage, messageType = 'text') {
     try {
-      const session = await this.getSession(sessionId);
+      // Always get session from memory to ensure we have the latest state
+      let session = this.activeSessions.get(sessionId);
       
       if (!session) {
-        throw new Error('Session not found');
+        // Try to restore from storage if not in memory
+        session = await this.getSession(sessionId);
+        if (!session) {
+          throw new Error('Session not found');
+        }
       }
 
       // Update session activity
@@ -78,6 +83,11 @@ class AgentOrchestrator {
           content: userMessage,
           timestamp: new Date().toISOString()
         });
+      }
+      
+      // Always ensure conversationHistory exists
+      if (!session.conversationHistory) {
+        session.conversationHistory = [];
       }
 
       // Determine next action based on state and message

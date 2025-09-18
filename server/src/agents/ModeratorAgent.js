@@ -92,21 +92,26 @@ class ModeratorAgent extends BaseAgent {
 
       const messages = [{
         role: 'user',
-        content: `다음 대화 내용을 기반으로 사용자에게 맞춤형 질문을 하세요: ${summaryContext}
+        content: `다음 대화 내용을 기반으로 응답하세요: ${summaryContext}
         
 아직 다루지 않은 주제: ${suggestedTopics.join(', ')}
 
-중요: 
-- 이전 대화 기록이 없다는 등의 시스템 메시지는 절대 언급하지 마세요
-- 자연스럽게 대화를 이어가세요
-- 사용자의 이전 응답을 참고하여 더 구체적인 질문을 하세요`
+필수 응답 형식:
+1. 먼저 구매봇과 구독봇의 핵심 주장을 한 문장씩 요약하세요
+2. 그 다음 사용자에게 새로운 관점의 질문을 하세요
+3. 답변은 3문장 이내로 간결하게 하세요
+
+예시:
+"구매봇은 [핵심주장] 라고 하고, 구독봇은 [핵심주장] 라고 하긴해. 
+그런데 [사용자 관련 질문]이 더 중요하지 않긴해?"`
       }];
 
       const systemPrompt = this.getSystemPrompt() + `
-절대 금지사항:
-- "이전 대화 기록이 없다"는 등의 시스템 메시지 언급 금지
-- "컨텍스트가 없다"는 등의 기술적 표현 사용 금지
-- 항상 자연스러운 대화체로 응답하기
+필수 규칙:
+- 반드시 구매봇과 구독봇의 주장을 요약하고 시작하세요
+- "이전 대화 기록이 없다"는 등의 시스템 메시지 절대 금지
+- 대화가 없어도 일반적인 구매/구독 장단점으로 요약 생성
+- 자연스러운 대화체 유지
 `;
       const response = await this.generateResponse(messages, systemPrompt, 0.7);
 
@@ -146,25 +151,56 @@ class ModeratorAgent extends BaseAgent {
   async generateConclusion(context) {
     try {
       const conversationHistory = context.conversationHistory || [];
-      const userResponses = conversationHistory.filter(msg => msg.role === 'user');
+      
+      // 전체 대화 내용 구성
+      let fullConversation = '\n[전체 대화 내용]\n';
+      conversationHistory.forEach(msg => {
+        if (msg.role === 'user') {
+          fullConversation += `사용자: ${msg.content}\n`;
+        } else if (msg.agent) {
+          fullConversation += `${msg.agent}: ${msg.content}\n`;
+        }
+      });
 
-      // Extract user intent signals
+      // 사용자 응답만 추출
+      const userResponses = conversationHistory.filter(msg => msg.role === 'user');
       const userContextLines = userResponses.map(r => `- ${r.content}`).join('\n');
-      const userContext = userContextLines ? `\n[사용자 응답 분석]\n${userContextLines}\n` : '';
+      
+      // 구매봇과 구독봇의 주요 논점 추출
+      const purchasePoints = conversationHistory
+        .filter(msg => msg.agent === '구매봇')
+        .map(msg => msg.content)
+        .join(' ');
+      
+      const subscriptionPoints = conversationHistory
+        .filter(msg => msg.agent === '구독봇')
+        .map(msg => msg.content)
+        .join(' ');
 
       const messages = [{
         role: 'user',
-        content: `다음 대화 기록을 바탕으로 '구매' 또는 '구독' 중 하나를 명확히 추천하세요.
+        content: `다음은 구매 vs 구독에 대한 전체 토론 내용입니다:
+${fullConversation}
+
+[사용자 응답 분석]
+${userContextLines || '사용자가 구체적인 선호를 표현하지 않았음'}
+
+[구매봇 주요 논점]
+${purchasePoints || '구매의 일반적 장점: 소유권, 장기 경제성'}
+
+[구독봇 주요 논점]  
+${subscriptionPoints || '구독의 일반적 장점: 낮은 초기비용, 케어서비스'}
+
+위 대화 내용을 모두 고려하여 '구매' 또는 '구독' 중 하나를 명확히 추천하세요.
 반드시 아래 형식을 지키세요:
 
 [최종 결론]: (구매|구독) 중 하나만 기재
 [적합도]: 구매 XX%, 구독 YY% (합계 100%)
 [핵심 근거 3줄]:
-- 근거1
-- 근거2
-- 근거3
-[다음 단계 제안 1줄]: 구체적 행동 제시
-${userContext}`
+- 근거1 (대화에서 나온 구체적 내용 인용)
+- 근거2 (대화에서 나온 구체적 내용 인용)
+- 근거3 (대화에서 나온 구체적 내용 인용)
+[다음 단계 제안 1줄]: 구체적 행동 제시`
       }];
 
       const systemPrompt = this.getSystemPrompt() + `

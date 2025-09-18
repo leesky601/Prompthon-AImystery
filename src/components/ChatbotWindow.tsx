@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader2, MessageCircle, ShoppingCart, Package, User } from 'lucide-react';
+import { X, Send, Loader2, MessageCircle, ShoppingCart, Package, User, ChevronLeft, ChevronRight, Info, Tag, Calendar } from 'lucide-react';
+import productsData from '../data/products.json';
 
 interface Message {
   agent: string;
@@ -9,6 +10,23 @@ interface Message {
   content: string;
   timestamp: string;
   quickResponses?: string[];
+}
+
+interface ProductInfo {
+  id: string;
+  name: string;
+  model: string;
+  size?: string;
+  category?: string;
+  originalPrice: number;
+  discountPrice: number;
+  discountRate: number;
+  monthlyPrice?: number;
+  image: string;
+  images?: string[];
+  tags?: string[];
+  careship?: boolean;
+  subscription?: boolean;
 }
 
 interface ChatbotWindowProps {
@@ -25,6 +43,8 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [conversationState, setConversationState] = useState('welcome');
+  const [showProductInfo, setShowProductInfo] = useState(true);
+  const [currentProduct, setCurrentProduct] = useState<ProductInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +56,18 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       initializeChat();
     }
   }, [isOpen]);
+
+  // Load product information when productId is provided
+  useEffect(() => {
+    if (productId) {
+      // Find product from the data
+      const allProducts = [...productsData.bestProducts];
+      const product = allProducts.find(p => p.id === productId);
+      if (product) {
+        setCurrentProduct(product as ProductInfo);
+      }
+    }
+  }, [productId]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -224,16 +256,29 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
           </div>
           <h2 className="text-xl font-bold">LG 가전 구독 할래말래?</h2>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-red-800 rounded-full transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
+        <div className="flex items-center space-x-2">
+          {currentProduct && (
+            <button
+              onClick={() => setShowProductInfo(!showProductInfo)}
+              className="p-2 hover:bg-red-800 rounded-full transition-colors"
+              title={showProductInfo ? '제품 정보 숨기기' : '제품 정보 보기'}
+            >
+              {showProductInfo ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-red-800 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
-      {/* Messages Container */}
-      <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${fullScreen ? '' : ''}`}>
+      {/* Main Content Area with Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Messages Container */}
+        <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && currentProduct ? 'mr-0' : ''}`}>
         {messages.map((message, index) => (
           <div
             key={index}
@@ -288,6 +333,127 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
         )}
 
         <div ref={messagesEndRef} />
+      </div>
+
+      {/* Product Info Sidebar */}
+      {showProductInfo && currentProduct && (
+        <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
+          <div className="p-4">
+            {/* Product Image */}
+            <div className="mb-4">
+              <img 
+                src={currentProduct.image} 
+                alt={currentProduct.name}
+                className="w-full h-48 object-contain rounded-lg bg-gray-100"
+              />
+            </div>
+
+            {/* Product Title */}
+            <h3 className="text-lg font-bold mb-2">{currentProduct.name}</h3>
+            <p className="text-sm text-gray-600 mb-4">{currentProduct.model}</p>
+
+            {/* Price Information */}
+            <div className="space-y-3 mb-4">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">정가</span>
+                  <span className="text-sm line-through text-gray-400">
+                    {currentProduct.originalPrice.toLocaleString()}원
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold">할인가</span>
+                  <div className="text-right">
+                    <span className="text-red-500 font-bold mr-2">{currentProduct.discountRate}%</span>
+                    <span className="text-lg font-bold text-gray-900">
+                      {currentProduct.discountPrice.toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+                {currentProduct.monthlyPrice && (
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <span className="text-sm text-gray-600">월 구독료</span>
+                    <span className="text-lg font-bold text-green-600">
+                      {currentProduct.monthlyPrice.toLocaleString()}원
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tags */}
+            {currentProduct.tags && currentProduct.tags.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
+                  <Tag className="w-4 h-4 mr-1 text-gray-500" />
+                  <span className="text-sm font-semibold">제품 특징</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {currentProduct.tags.map((tag, idx) => (
+                    <span key={idx} className="px-2 py-1 bg-gray-100 text-xs rounded-full">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Services */}
+            <div className="space-y-2">
+              {currentProduct.careship && (
+                <div className="flex items-center space-x-2 text-sm">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>케어십 가능</span>
+                </div>
+              )}
+              {currentProduct.subscription && (
+                <div className="flex items-center space-x-2 text-sm">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span>구독 가능</span>
+                </div>
+              )}
+            </div>
+
+            {/* Additional Info */}
+            {currentProduct.size && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center mb-1">
+                  <Info className="w-4 h-4 mr-1 text-blue-600" />
+                  <span className="text-sm font-semibold text-blue-900">크기</span>
+                </div>
+                <p className="text-sm text-blue-700">{currentProduct.size}</p>
+              </div>
+            )}
+
+            {/* Comparison Summary */}
+            <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
+              <h4 className="text-sm font-semibold mb-2 text-yellow-900">구매 vs 구독 비교</h4>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">일시불 구매</span>
+                  <span className="font-semibold">{currentProduct.discountPrice.toLocaleString()}원</span>
+                </div>
+                {currentProduct.monthlyPrice && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">3년 구독 총액</span>
+                      <span className="font-semibold">
+                        {(currentProduct.monthlyPrice * 36).toLocaleString()}원
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">5년 구독 총액</span>
+                      <span className="font-semibold">
+                        {(currentProduct.monthlyPrice * 60).toLocaleString()}원
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
 
       {/* Input Area */}

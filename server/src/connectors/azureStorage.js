@@ -9,23 +9,33 @@ class AzureStorageConnector {
   constructor() {
     const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
     
-    // Initialize Table Storage
-    this.tableServiceClient = TableServiceClient.fromConnectionString(connectionString);
-    this.sessionTable = TableClient.fromConnectionString(connectionString, 'sessions');
-    this.conversationTable = TableClient.fromConnectionString(connectionString, 'conversations');
-    
-    // Initialize Blob Storage
-    this.blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
-    this.conversationContainer = this.blobServiceClient.getContainerClient('conversation-logs');
-    
-    // Initialize Queue Storage
-    this.queueServiceClient = QueueServiceClient.fromConnectionString(connectionString);
-    this.taskQueue = this.queueServiceClient.getQueueClient('chatbot-tasks');
-    
-    this.initializeStorage();
+    // Check if Azure Storage is configured
+    if (connectionString && connectionString !== 'your_azure_storage_connection_string_here') {
+      // Initialize Table Storage
+      this.tableServiceClient = TableServiceClient.fromConnectionString(connectionString);
+      this.sessionTable = TableClient.fromConnectionString(connectionString, 'sessions');
+      this.conversationTable = TableClient.fromConnectionString(connectionString, 'conversations');
+      
+      // Initialize Blob Storage
+      this.blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+      this.conversationContainer = this.blobServiceClient.getContainerClient('conversation-logs');
+      
+      // Initialize Queue Storage
+      this.queueServiceClient = QueueServiceClient.fromConnectionString(connectionString);
+      this.taskQueue = this.queueServiceClient.getQueueClient('chatbot-tasks');
+      
+      this.mockMode = false;
+      this.initializeStorage();
+    } else {
+      console.warn('⚠️  Azure Storage not configured - using mock mode');
+      this.mockMode = true;
+      this.mockData = new Map(); // In-memory storage for mock mode
+    }
   }
 
   async initializeStorage() {
+    if (this.mockMode) return;
+    
     try {
       // Create tables if they don't exist
       await this.tableServiceClient.createTable('sessions').catch(() => {});
@@ -43,6 +53,11 @@ class AzureStorageConnector {
 
   // Session Management
   async createSession(sessionId, userData) {
+    if (this.mockMode) {
+      this.mockData.set(`session_${sessionId}`, { userData, createdAt: new Date() });
+      return { success: true };
+    }
+    
     try {
       const entity = {
         partitionKey: 'session',
@@ -61,6 +76,11 @@ class AzureStorageConnector {
   }
 
   async getSession(sessionId) {
+    if (this.mockMode) {
+      const session = this.mockData.get(`session_${sessionId}`);
+      return session ? { success: true, session } : { success: false, error: 'Session not found' };
+    }
+    
     try {
       const entity = await this.sessionTable.getEntity('session', sessionId);
       return {
@@ -77,6 +97,15 @@ class AzureStorageConnector {
   }
 
   async updateSession(sessionId, updates) {
+    if (this.mockMode) {
+      const session = this.mockData.get(`session_${sessionId}`);
+      if (session) {
+        this.mockData.set(`session_${sessionId}`, { ...session, ...updates });
+        return { success: true };
+      }
+      return { success: false, error: 'Session not found' };
+    }
+    
     try {
       const entity = await this.sessionTable.getEntity('session', sessionId);
       const updatedEntity = {
@@ -99,6 +128,11 @@ class AzureStorageConnector {
 
   // Conversation History
   async saveConversation(sessionId, conversationId, messages) {
+    if (this.mockMode) {
+      this.mockData.set(`conversation_${sessionId}_${conversationId}`, messages);
+      return { success: true };
+    }
+    
     try {
       const entity = {
         partitionKey: sessionId,
@@ -116,6 +150,16 @@ class AzureStorageConnector {
   }
 
   async getConversationHistory(sessionId) {
+    if (this.mockMode) {
+      const conversations = [];
+      for (const [key, value] of this.mockData.entries()) {
+        if (key.startsWith(`conversation_${sessionId}_`)) {
+          conversations.push({ messages: value });
+        }
+      }
+      return { success: true, conversations };
+    }
+    
     try {
       const queryOptions = {
         filter: `PartitionKey eq '${sessionId}'`
@@ -145,6 +189,11 @@ class AzureStorageConnector {
 
   // Blob Storage for Large Logs
   async archiveConversation(sessionId, conversationData) {
+    if (this.mockMode) {
+      this.mockData.set(`archive_${sessionId}_${Date.now()}`, conversationData);
+      return { success: true, blobUrl: 'mock://archive' };
+    }
+    
     try {
       const blobName = `${sessionId}/${Date.now()}.json`;
       const blockBlobClient = this.conversationContainer.getBlockBlobClient(blobName);
@@ -163,6 +212,11 @@ class AzureStorageConnector {
 
   // Queue for Async Tasks
   async queueTask(taskData) {
+    if (this.mockMode) {
+      console.log('Mock queue task:', taskData);
+      return { success: true };
+    }
+    
     try {
       const message = Buffer.from(JSON.stringify(taskData)).toString('base64');
       await this.taskQueue.sendMessage(message);

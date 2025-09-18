@@ -101,3 +101,17 @@ TypeError: Cannot read properties of undefined (reading 'toLowerCase')
     at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
     at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
     at async file:///home/user/webapp/server/src/index.js:34:21
+2025-09-18T21:40:04: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-18T21:40:04: ⚠️  Please configure these in server/.env file
+2025-09-18T21:40:04: ⚠️  The server will start but some features may not work properly
+
+2025-09-18T21:40:06: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:40:06: ⚠️  Chat responses will be simulated
+2025-09-18T21:40:06: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:40:06: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:40:06: ⚠️  Chat responses will be simulated
+2025-09-18T21:40:06: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:40:06: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:40:06: ⚠️  Chat responses will be simulated
+2025-09-18T21:40:06: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:40:06: ⚠️  Azure Storage not configured - using mock mode
