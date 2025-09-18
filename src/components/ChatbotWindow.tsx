@@ -492,29 +492,111 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                   </span>
                 </div>
                 {detailedProduct.구독가격_6년 && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-600">6년 구독 총액</span>
-                    <span className="text-sm font-bold text-gray-800">
-                      {(detailedProduct.구독가격_6년 * 72).toLocaleString()}원
-                    </span>
-                  </div>
-                )}
-                {detailedProduct.구독가격_6년 && (
-                  <div className="pt-2 mt-2 border-t border-gray-300">
+                  <>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-semibold text-gray-700">차액</span>
-                      <span className={`text-sm font-bold ${
-                        (detailedProduct.구독가격_6년 * 72) > detailedProduct.구매가격정보 
-                          ? 'text-red-600' 
-                          : 'text-green-600'
-                      }`}>
-                        {Math.abs((detailedProduct.구독가격_6년 * 72) - detailedProduct.구매가격정보).toLocaleString()}원
-                        {(detailedProduct.구독가격_6년 * 72) > detailedProduct.구매가격정보 
-                          ? ' 더 비쌈' 
-                          : ' 절약'}
+                      <span className="text-xs text-gray-600">6년 구독 기본 총액</span>
+                      <span className="text-sm text-gray-700">
+                        {(detailedProduct.구독가격_6년 * 72).toLocaleString()}원
                       </span>
                     </div>
-                  </div>
+                    
+                    {/* Calculate subscription with benefits */}
+                    {(() => {
+                      const basicTotal = detailedProduct.구독가격_6년 * 72;
+                      let finalTotal = basicTotal;
+                      let appliedBenefits = [];
+                      
+                      // Parse benefits to calculate actual final cost
+                      detailedProduct.구독장점.forEach(benefit => {
+                        // Check for card discount
+                        if (benefit.includes('제휴카드 할인')) {
+                          const match = benefit.match(/월\s*([\d,]+)원/);
+                          if (match) {
+                            const monthlyDiscount = parseInt(match[1].replace(/,/g, ''));
+                            finalTotal -= monthlyDiscount * 72;
+                            appliedBenefits.push(`카드할인: -${(monthlyDiscount * 72).toLocaleString()}원`);
+                          }
+                        }
+                        
+                        // Check for prepayment discount
+                        if (benefit.includes('선 결제') && benefit.includes('추가 할인')) {
+                          const match = benefit.match(/월\s*([\d,]+)원\s*추가\s*할인/);
+                          if (match) {
+                            const monthlyDiscount = parseInt(match[1].replace(/,/g, ''));
+                            finalTotal -= monthlyDiscount * 72;
+                            appliedBenefits.push(`선결제 할인: -${(monthlyDiscount * 72).toLocaleString()}원`);
+                          }
+                        }
+                        
+                        // Check for membership points
+                        if (benefit.includes('멤버십 포인트')) {
+                          const match = benefit.match(/([\d,]+)P/);
+                          if (match) {
+                            const points = parseInt(match[1].replace(/,/g, ''));
+                            finalTotal -= points;
+                            appliedBenefits.push(`포인트: -${points.toLocaleString()}원`);
+                          }
+                        }
+                        
+                        // Check for first year discount
+                        if (benefit.includes('첫 12개월') && benefit.includes('반값')) {
+                          const halfYearDiscount = detailedProduct.구독가격_6년 * 6;
+                          finalTotal -= halfYearDiscount;
+                          appliedBenefits.push(`첫년 반값: -${halfYearDiscount.toLocaleString()}원`);
+                        }
+                        
+                        // Check if total cost is mentioned in benefit
+                        if (benefit.includes('총 비용')) {
+                          const match = benefit.match(/총\s*비용\s*([\d,]+)원/);
+                          if (match) {
+                            finalTotal = parseInt(match[1].replace(/,/g, ''));
+                          }
+                        }
+                      });
+                      
+                      return (
+                        <>
+                          {appliedBenefits.length > 0 && (
+                            <div className="pl-3 space-y-1 text-xs text-gray-500 italic">
+                              {appliedBenefits.map((benefit, idx) => (
+                                <div key={idx}>{benefit}</div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between items-center bg-green-100 p-2 rounded">
+                            <span className="text-xs font-semibold text-green-800">혜택 적용 최종가</span>
+                            <span className="text-sm font-bold text-green-700">
+                              {finalTotal.toLocaleString()}원
+                            </span>
+                          </div>
+                          
+                          <div className="pt-2 mt-2 border-t border-gray-300">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-semibold text-gray-700">구매 대비 차액</span>
+                              <span className={`text-sm font-bold ${
+                                finalTotal > detailedProduct.구매가격정보 
+                                  ? 'text-red-600' 
+                                  : 'text-green-600'
+                              }`}>
+                                {Math.abs(finalTotal - detailedProduct.구매가격정보).toLocaleString()}원
+                                {finalTotal > detailedProduct.구매가격정보 
+                                  ? ' 더 비쌈' 
+                                  : ' 절약'}
+                              </span>
+                            </div>
+                            {finalTotal <= detailedProduct.구매가격정보 && (
+                              <div className="mt-2 p-2 bg-green-50 rounded">
+                                <p className="text-xs text-green-700 font-medium text-center">
+                                  ✨ 구독이 더 경제적입니다!
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </>
                 )}
               </div>
             </div>
