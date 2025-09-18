@@ -40,6 +40,76 @@
     background: linear-gradient(135deg, #1E3A8A 0%, #581C87 100%);
   }
 
+  /* Subscribe Debate Buttons */
+  .subscribe-debate-btn {
+    background: linear-gradient(90deg, #6B3AA6, #00A9CE);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    animation: pulse 2s infinite;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .subscribe-debate-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(107,58,166,0.3);
+  }
+
+  .subscribe-debate-detail-btn {
+    width: 90%;
+    height: 60px;
+    background: linear-gradient(135deg, #6B3AA6, #00A9CE);
+    border: 2px solid transparent;
+    border-radius: 30px;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 20px auto;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: block;
+  }
+
+  .subscribe-debate-detail-btn::before {
+    content: "적절하긴해~";
+    position: absolute;
+    top: 5px;
+    right: 20px;
+    font-size: 12px;
+    opacity: 0.8;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .subscribe-debate-detail-btn:hover {
+    background: linear-gradient(135deg, #00A9CE, #6B3AA6);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(107,58,166,0.4);
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;

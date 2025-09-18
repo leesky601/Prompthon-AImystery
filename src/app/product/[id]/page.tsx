@@ -100,7 +100,11 @@ export default function ProductDetailPage() {
         <div className="max-w-[1440px] mx-auto px-4">
           <div className="flex items-center justify-between h-[70px]">
             <Link href="/" className="flex items-center">
-              <div className="text-[#A50034] font-bold text-2xl">LG전자</div>
+              <img 
+                src="https://page.gensparksite.com/v1/base64_upload/ed0885953a88ee41c3e61962681af947" 
+                alt="LG전자" 
+                className="h-8"
+              />
             </Link>
 
             <nav className="hidden lg:flex items-center gap-8">
@@ -221,9 +225,19 @@ export default function ProductDetailPage() {
             )}
 
             {/* Product Title */}
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
-              <p className="text-xl text-gray-600">{productInfo.size}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+              <div className="lg:col-span-2">
+                <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
+                <p className="text-xl text-gray-600">{productInfo.size}</p>
+              </div>
+              <div className="lg:col-span-1 flex justify-center lg:justify-end">
+                <button
+                  onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
+                  className="subscribe-debate-detail-btn"
+                >
+                  구독 할래말래?
+                </button>
+              </div>
             </div>
 
             {/* Sales Counter */}

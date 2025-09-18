@@ -138,7 +138,11 @@ export default function Home() {
           <div className="flex items-center justify-between h-[70px]">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <div className="text-[#A50034] font-bold text-2xl">LG전자</div>
+              <img 
+                src="https://page.gensparksite.com/v1/base64_upload/ed0885953a88ee41c3e61962681af947" 
+                alt="LG전자" 
+                className="h-8"
+              />
             </Link>
 
             {/* Main Navigation */}
@@ -396,10 +400,19 @@ export default function Home() {
                         {product.discountPrice.toLocaleString()}원
                       </p>
                       {product.monthlyPrice && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1 mb-2">
                           최대혜택가 {product.monthlyPrice.toLocaleString()}원
                         </p>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          alert('구독 서비스 페이지로 이동합니다!');
+                        }}
+                        className="subscribe-debate-btn w-full mt-2"
+                      >
+                        구독 할래말래?
+                      </button>
                     </div>
                   </Link>
                 ))}
