@@ -1,17 +1,11 @@
-import winston from 'winston';
-import path from 'path';
+// Simple logger implementation without Winston for Windows compatibility
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import fs from 'fs';
+import path from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Ensure logs directory exists
-const logsDir = path.join(__dirname, '../../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
-}
 
 // Define log levels
 const levels = {
@@ -22,49 +16,77 @@ const levels = {
   debug: 4,
 };
 
-// Define log colors
+// Define log colors for console
 const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'blue',
+  error: '\x1b[31m', // red
+  warn: '\x1b[33m',  // yellow
+  info: '\x1b[32m',  // green
+  http: '\x1b[35m',  // magenta
+  debug: '\x1b[34m', // blue
+  reset: '\x1b[0m'   // reset
 };
 
-winston.addColors(colors);
+class SimpleLogger {
+  constructor() {
+    this.logDir = join(__dirname, '../../logs');
+    this.ensureLogDirectory();
+  }
 
-// Define format
-const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-  winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}${info.stack ? '\n' + info.stack : ''}`
-  )
-);
+  ensureLogDirectory() {
+    if (!fs.existsSync(this.logDir)) {
+      fs.mkdirSync(this.logDir, { recursive: true });
+    }
+  }
 
-// Define transports
-const transports = [
-  new winston.transports.Console(),
-  new winston.transports.File({
-    filename: path.join(__dirname, '../../logs/error.log'),
-    level: 'error',
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
-  new winston.transports.File({
-    filename: path.join(__dirname, '../../logs/combined.log'),
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
-];
+  formatMessage(level, message, meta = {}) {
+    const timestamp = new Date().toISOString();
+    const metaStr = Object.keys(meta).length > 0 ? JSON.stringify(meta) : '';
+    return `${timestamp} [${level.toUpperCase()}]: ${message} ${metaStr}`.trim();
+  }
 
-// Create logger
-const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  levels,
-  format,
-  transports,
-  exitOnError: false,
-});
+  writeToFile(filename, message) {
+    const filePath = join(this.logDir, filename);
+    fs.appendFileSync(filePath, message + '\n', 'utf8');
+  }
 
+  log(level, message, meta = {}) {
+    const formattedMessage = this.formatMessage(level, message, meta);
+    
+    // Console output with color
+    const color = colors[level] || colors.reset;
+    console.log(`${color}${formattedMessage}${colors.reset}`);
+    
+    // File output
+    this.writeToFile('combined.log', formattedMessage);
+    
+    if (level === 'error') {
+      this.writeToFile('error.log', formattedMessage);
+    }
+  }
+
+  error(message, meta = {}) {
+    this.log('error', message, meta);
+  }
+
+  warn(message, meta = {}) {
+    this.log('warn', message, meta);
+  }
+
+  info(message, meta = {}) {
+    this.log('info', message, meta);
+  }
+
+  http(message, meta = {}) {
+    this.log('http', message, meta);
+  }
+
+  debug(message, meta = {}) {
+    if (process.env.NODE_ENV !== 'production') {
+      this.log('debug', message, meta);
+    }
+  }
+}
+
+// Export singleton instance
+const logger = new SimpleLogger();
 export default logger;

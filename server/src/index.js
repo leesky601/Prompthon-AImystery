@@ -4,11 +4,54 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import session from 'express-session';
 import rateLimit from 'express-rate-limit';
-import chatRouter from './routes/chat.js';
-import healthRouter from './routes/health.js';
-import logger from './utils/logger.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import fs from 'fs';
 
+// Load environment variables
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Check for required environment variables
+const requiredEnvVars = [
+  'AZURE_OPENAI_API_KEY',
+  'AZURE_OPENAI_ENDPOINT',
+  'AZURE_SEARCH_API_KEY',
+  'AZURE_SEARCH_ENDPOINT',
+  'AZURE_STORAGE_CONNECTION_STRING'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.warn('⚠️  Warning: Missing environment variables:', missingVars.join(', '));
+  console.warn('⚠️  Please configure these in server/.env file');
+  console.warn('⚠️  The server will start but some features may not work properly\n');
+}
+
+// Import routes after environment check
+const chatRouter = (await import('./routes/chat.js')).default;
+const healthRouter = (await import('./routes/health.js')).default;
+
+// Create logs directory if it doesn't exist
+const logsDir = join(__dirname, '..', 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Simple logger since Winston might have issues
+const logger = {
+  info: (message, ...args) => {
+    console.log(`[INFO] ${new Date().toISOString()} - ${message}`, ...args);
+  },
+  error: (message, ...args) => {
+    console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, ...args);
+  },
+  warn: (message, ...args) => {
+    console.warn(`[WARN] ${new Date().toISOString()} - ${message}`, ...args);
+  }
+};
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -20,7 +63,25 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost with any port
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Allow configured frontend URL
+    const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+    if (origin === allowedOrigin) {
+      return callback(null, true);
+    }
+    
+    // Log and allow for development
+    logger.warn(`CORS request from origin: ${origin}`);
+    callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Session-ID']
@@ -72,6 +133,11 @@ app.get('/', (req, res) => {
     endpoints: {
       chat: '/api/chat',
       health: '/api/health'
+    },
+    environment: {
+      node: process.version,
+      platform: process.platform,
+      uptime: process.uptime()
     }
   });
 });
@@ -83,7 +149,8 @@ app.use((err, req, res, next) => {
     success: false,
     error: process.env.NODE_ENV === 'production' 
       ? 'Internal server error' 
-      : err.message
+      : err.message,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
   });
 });
 
@@ -114,6 +181,17 @@ const gracefulShutdown = () => {
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 // Start server
 const server = app.listen(PORT, '0.0.0.0', () => {
   logger.info(`Server is running on port ${PORT}`);
@@ -122,5 +200,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     📍 Local: http://localhost:${PORT}
     📍 Network: http://0.0.0.0:${PORT}
     📍 Environment: ${process.env.NODE_ENV || 'development'}
+    📍 Platform: ${process.platform}
+    📍 Node Version: ${process.version}
+    
+    ${missingVars.length > 0 ? '⚠️  Warning: Some environment variables are missing. Check server/.env file.' : '✅ All environment variables are configured.'}
   `);
 });
