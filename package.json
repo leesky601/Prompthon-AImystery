@@ -7,7 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "bunx tsc --noEmit && next lint",
-    "format": "bunx biome format --write"
+    "format": "bunx biome format --write",
+    "dev:win": "next dev",
+    "dev:backend": "cd server && npm start",
+    "dev:all": "start cmd /k \"cd server && npm start\" && npm run dev:win",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop all",
+    "pm2:restart": "pm2 restart all",
+    "pm2:logs": "pm2 logs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
