@@ -49,13 +49,9 @@ export default function ProductDetailPage() {
   const productData = productsData.bestProducts.find(product => product.id === params.id) || productsData.bestProducts[0];
   const [salesCount] = useState(productData.salesCount); // 최근 7일간 판매대수
   
-  // 이미지 갤러리 데이터
-  const productImages = [
-    'https://www.lge.co.kr/kr/images/tvs/md10466830/gallery/large-interior02.jpg',
-    productData.image,
-    'https://ext.same-assets.com/2158291103/2812149775.jpeg',
-    'https://ext.same-assets.com/2158291103/1164128085.jpeg',
-    'https://ext.same-assets.com/2158291103/1511966904.jpeg'
+  // 이미지 갤러리 데이터 - 제품별 동적 설정
+  const productImages = productData.images || [
+    productData.image, // 기본 이미지가 없을 경우 메인 이미지만 사용
   ];
 
   // 제품 정보 - JSON에서 가져오기
