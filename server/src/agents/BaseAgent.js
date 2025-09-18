@@ -9,26 +9,49 @@ class BaseAgent {
     this.searchConnector = new AzureSearchConnector();
   }
 
-  // Apply the special ending patterns to messages
-  // applySpecialEnding(message) {
-  //   const endings = ['긴해.', '하긴해.', '이긴해.', '맞긴해.', '할래말래?'];
-  //   const hasEnding = endings.some(ending => message.endsWith(ending));
-    
-  //   if (!hasEnding) {
-  //     // If message doesn't end with required pattern, add it
-  //     const randomEnding = endings[Math.floor(Math.random() * endings.length)];
-  //     return message + randomEnding;
-  //   }
-    
-  //   return message;
-  // }
+  // Lightweight summarizer to keep responses concise
+  summarizeContent(raw) {
+    if (!raw) return '';
+    // Normalize whitespace
+    let text = String(raw).replace(/\s+/g, ' ').trim();
+    // If already short, return as is
+    if (text.length <= 220) return text;
 
-  // Format response with agent metadata
+    // Try sentence-based truncation
+    const sentences = text.split(/(?<=[.!?\u3002\uFF01\uFF1F\u2026]|\n)\s+/);
+    let summary = '';
+    for (let i = 0; i < sentences.length && summary.length < 200; i++) {
+      const part = sentences[i].trim();
+      if (!part) continue;
+      summary += (summary ? ' ' : '') + part;
+    }
+    // Fallback hard cut
+    if (!summary) summary = text.slice(0, 200);
+
+    // Ensure concise length
+    if (summary.length > 240) summary = summary.slice(0, 240);
+
+    return summary;
+  }
+
+  // Apply the special ending patterns to messages
+  applySpecialEnding(message) {
+    const endings = ['긴해', '하긴해', '이긴해', '맞긴해', '할래말래'];
+    const hasEnding = endings.some(ending => message.endsWith(ending));
+    if (!hasEnding) {
+      const randomEnding = endings[Math.floor(Math.random() * endings.length)];
+      return message.replace(/[.!?]*$/,'') + randomEnding;
+    }
+    return message;
+  }
+
+  // Format response with agent metadata (post-LLM summarization)
   formatResponse(content, metadata = {}) {
+    const concise = this.summarizeContent(content);
     return {
       agent: this.name,
       role: this.role,
-      content: content,
+      content: this.applySpecialEnding(concise),
       timestamp: new Date().toISOString(),
       ...metadata
     };
@@ -37,23 +60,13 @@ class BaseAgent {
   // Base system prompt with speech pattern rules
   getBaseSystemPrompt() {
     return `
-중요: 반드시 위의 말투 규칙을 모든 응답에 적용하세요. 
-
-[절대 규칙] 모든 문장은 반드시 "~긴해.", "~하긴해.", "~이긴해.", "~맞긴해.", "~할래말래?" 중 하나로 끝내야 합니다. 다른 어미 사용은 절대 금지입니다.
+[절대 규칙] 모든 문장은 반드시 "~긴해", "~하긴해", "~이긴해", "~맞긴해", "~할래말래" 중 하나로 끝내야 합니다. 다른 어미 사용은 절대 금지입니다.
 
 [핵심 말투 패턴]
-- 추임새 (자주 넣기): "애매하긴해.", "적절하긴해."
-- 문장 끝: "~긴해.", "~하긴해.", "~이긴해.", "~맞긴해.", "~할래말래?" (절대 "~요", "~야", "~어", "~네" 사용 금지)
+- 문장 끝: "~긴해", "~하긴해", "~이긴해", "~맞긴해", "~할래말래" (절대 "~야", "~어", "~네" 사용 금지)
 - 감탄사: "킹받네;;", "ㅇㅋ?", "ㅋㅋ", "ㅎㅎ", "헐", "대박"
 - 강조: "진짜", "완전", "킹받게", "미치긴했어"
-- 의문문: "~할래말래?"
-
-
-[대화 스타일]
-- 짧고 직설적인 톤
-- 은근히 도발하는 뉘앙스
-- 킹받게 웃긴 표현 사용
-- 진지하게 설명하더라도 말투는 끝까지 킹받게 유지
+- 도발 표현: "~할래말래?", "ㅇㅋ?"
 
 [올바른 문장 끝 예시]
 - "무료로는 못 쓰는 특별한 기능들까지 다 주긴해"
@@ -63,15 +76,8 @@ class BaseAgent {
 - "일단 한번 구매해보면 후회 없을 거긴해"
 - "구독이 더 경제적이긴해"
 - "케어 서비스까지 받을 수 있긴해"
-- "구독 할래말래?"
 
-[잘못된 문장 끝 예시 - 절대 사용 금지]
-- 물음표 바로 뒤에 긴해 절대 사용 금지 (예시 : "시작할까요?긴해")
-- "할래말래?긴해" (X)
-- "궁금하긴해?긴해" (X)
-- ""맘에 들긴해."긴해" (X)
-- "선호긴해" (X)
-- "하긴해!하긴해" (X)
+중요: 반드시 위의 말투 규칙을 모든 응답에 적용하세요.
 `;
   }
 

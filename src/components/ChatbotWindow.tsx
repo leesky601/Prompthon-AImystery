@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Loader2, MessageCircle, ShoppingCart, Package, User } from 'lucide-react';
 
 interface Message {
@@ -15,9 +15,10 @@ interface ChatbotWindowProps {
   productId?: string;
   isOpen: boolean;
   onClose: () => void;
+  fullScreen?: boolean;
 }
 
-const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClose }) => {
+const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClose, fullScreen = false }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -38,12 +39,8 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages]);
 
   const initializeChat = async () => {
     try {
@@ -78,6 +75,19 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const delayForAgent = (agent?: string) => {
+    switch (agent) {
+      case '구매봇':
+        return 600;
+      case '구독봇':
+        return 900;
+      case '안내봇':
+        return 1200;
+      default:
+        return 700;
     }
   };
 
@@ -119,17 +129,16 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       const data = await response.json();
       
       if (data.success) {
-        // Handle multiple messages (for debate scenarios)
         if (data.messages && Array.isArray(data.messages)) {
-          // Add messages with delay for typing effect
           for (let i = 0; i < data.messages.length; i++) {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            setMessages(prev => [...prev, data.messages[i]]);
+            const msg = data.messages[i];
+            const delay = delayForAgent(msg.agent);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            setMessages(prev => [...prev, msg]);
           }
         } else if (data.message) {
           setMessages(prev => [...prev, data.message]);
         }
-        
         setConversationState(data.state || conversationState);
       }
     } catch (error) {
@@ -186,114 +195,140 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4 rounded-t-lg flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="flex space-x-2">
-              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-              <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-75"></div>
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse delay-150"></div>
-            </div>
-            <h2 className="text-xl font-bold">가전 구독 할래말래?</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-red-800 rounded-full transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+  const Wrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
+    if (fullScreen) {
+      return (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen">
+          {children}
         </div>
-
-        {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`flex items-start space-x-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                <div className={`p-2 rounded-full ${getAgentColor(message.agent)} text-white`}>
-                  {getAgentIcon(message.agent)}
-                </div>
-                <div>
-                  <div className={`text-sm font-semibold mb-1 ${message.role === 'user' ? 'text-right' : ''}`}>
-                    {message.agent}
-                  </div>
-                  <div className={`p-3 rounded-lg ${
-                    message.role === 'user' 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-white border border-gray-200'
-                  }`}>
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                  
-                  {/* Quick Responses */}
-                  {message.quickResponses && message.quickResponses.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {message.quickResponses.map((response, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleQuickResponse(response)}
-                          disabled={isLoading}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                            response === '이제 결론을 내줘'
-                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {response}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {/* Typing Indicator */}
-          {isTyping && (
-            <div className="flex items-center space-x-2 text-gray-500">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm">입력 중...</span>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="border-t bg-white p-4 rounded-b-lg">
-          <div className="flex space-x-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !isLoading && sendMessage()}
-              placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : '메시지를 입력하세요...'}
-              disabled={isLoading || conversationState === 'conclusion'}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            />
-            <button
-              onClick={() => sendMessage()}
-              disabled={isLoading || !inputValue || conversationState === 'conclusion'}
-              className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-              <span className="hidden sm:inline">전송</span>
-            </button>
-          </div>
+      );
+    }
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
+          {children}
         </div>
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <Wrapper>
+      {/* Header */}
+      <div className={`bg-gradient-to-r from-red-600 to-red-700 text-white p-4 ${fullScreen ? '' : 'rounded-t-lg'} flex items-center justify-between`}>
+        <div className="flex items-center space-x-3">
+          <div className="flex space-x-2">
+            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-75"></div>
+            <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse delay-150"></div>
+          </div>
+          <h2 className="text-xl font-bold">LG 가전 구매/구독 결정 도우미</h2>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-red-800 rounded-full transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Messages Container */}
+      <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${fullScreen ? '' : ''}`}>
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div className={`flex items-start space-x-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+              <div className={`p-2 rounded-full ${getAgentColor(message.agent)} text-white`}>
+                {getAgentIcon(message.agent)}
+              </div>
+              <div>
+                <div className={`text-sm font-semibold mb-1 ${message.role === 'user' ? 'text-right' : ''}`}>
+                  {message.agent}
+                </div>
+                <div className={`p-3 rounded-lg ${
+                  message.role === 'user' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-white border border-gray-200'
+                }`}>
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                </div>
+                
+                {/* Quick Responses */}
+                {message.quickResponses && message.quickResponses.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {message.quickResponses.map((response, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleQuickResponse(response)}
+                        disabled={isLoading}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                          response === '이제 결론을 내줘'
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {response}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Typing Indicator */}
+        {isTyping && (
+          <div className="flex items-center space-x-2 text-gray-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">입력 중...</span>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className={`border-t bg-white p-4 ${fullScreen ? '' : 'rounded-b-lg'}`}>
+        <div className="flex space-x-2">
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !isLoading && conversationState !== 'welcome' && sendMessage()}
+            placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : (conversationState === 'welcome' ? '아래 "시작하자" 버튼을 눌러주세요' : '메시지를 입력하세요...')}
+            disabled={isLoading || conversationState === 'conclusion' || conversationState === 'welcome'}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+          <button
+            onClick={() => sendMessage()}
+            disabled={isLoading || !inputValue || conversationState === 'conclusion' || conversationState === 'welcome'}
+            className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+            <span className="hidden sm:inline">전송</span>
+          </button>
+        </div>
+        {conversationState === 'welcome' && (
+          <div className="mt-3 flex justify-center">
+            <button
+              onClick={() => handleQuickResponse('시작하자')}
+              disabled={isLoading}
+              className="px-8 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:opacity-50"
+            >
+              시작하자
+            </button>
+          </div>
+        )}
+      </div>
+    </Wrapper>
   );
 };
 

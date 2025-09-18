@@ -5,6 +5,7 @@ import { Search, User, ShoppingCart, Menu, ChevronDown, ChevronRight, Heart, Sli
 import Image from 'next/image';
 import Link from 'next/link';
 import ChatbotButton from '@/components/ChatbotButton';
+import Link from 'next/link';
 
 // Import JSON data
 import productsData from '../data/products.json';

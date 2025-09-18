@@ -93,7 +93,7 @@ class AgentOrchestrator {
               success: true,
               message: {
                 agent: '안내봇',
-                content: '토론을 시작하려면 "시작하자" 버튼을 눌러주세요!',
+                content: '토론을 시작하려면 아래 버튼을 눌러달라긴해',
                 quickResponses: ['시작하자']
               }
             };
@@ -155,13 +155,16 @@ class AgentOrchestrator {
   async startInitialDebate(session) {
     try {
       const responses = [];
-      
+
       // Generate purchase agent's initial argument
       const purchaseArgument = await this.purchaseAgent.generateInitialArgument(
         session.productId
       );
       session.conversationHistory.push(purchaseArgument);
       responses.push(purchaseArgument);
+
+      // Wait a moment before next bot to simulate turn-taking
+      await new Promise(r => setTimeout(r, 300));
 
       // Generate subscription agent's initial argument (independent)
       const subscriptionArgument = await this.subscriptionAgent.generateInitialArgument(
@@ -170,7 +173,10 @@ class AgentOrchestrator {
       session.conversationHistory.push(subscriptionArgument);
       responses.push(subscriptionArgument);
 
-      // Generate moderator's summary and question
+      // Small pause before moderator
+      await new Promise(r => setTimeout(r, 300));
+
+      // Generate moderator's summary and question (short)
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
         productId: session.productId,
         conversationHistory: session.conversationHistory
@@ -210,6 +216,9 @@ class AgentOrchestrator {
       session.conversationHistory.push(purchaseResponse);
       responses.push(purchaseResponse);
 
+      // Short delay between bots
+      await new Promise(r => setTimeout(r, 300));
+
       // Subscription agent provides counter-argument
       const subscriptionRebuttal = await this.subscriptionAgent.generateRebuttal(
         context,
@@ -217,6 +226,9 @@ class AgentOrchestrator {
       );
       session.conversationHistory.push(subscriptionRebuttal);
       responses.push(subscriptionRebuttal);
+
+      // Short delay before moderator
+      await new Promise(r => setTimeout(r, 300));
 
       // Moderator summarizes and asks next question
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion(context);

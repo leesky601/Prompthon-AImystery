@@ -33,18 +33,19 @@ class ModeratorAgent extends BaseAgent {
     const systemPrompt = this.getSystemPrompt() + `
 사용자를 환영하고, 구매와 구독 중 최적의 선택을 도와드리겠다고 안내하세요.
 "토론을 시작할까요?"라는 질문으로 마무리하세요.
+가능한 한 간결하게 2문장 이내로 말하세요.
 `;
 
-    const response = await this.generateResponse(messages, systemPrompt, 0.7);
+    const response = await this.generateResponse(messages, systemPrompt, 0.5);
     
     if (!response.success) {
       return this.formatResponse(
-        '안녕하세요! 구매할지 구독할지 고민이시군요. 제가 도와드리겠습니다. 토론을 시작할까요?',
-        { type: 'welcome' }
+        '안녕하세요! 구매할지 구독할지 고민이시군요. 제가 도와드리겠긴해. 토론을 시작할래말래?',
+        { type: 'welcome', quickResponses: ['시작하자'] }
       );
     }
 
-    return this.formatResponse(response.content, { type: 'welcome' });
+    return this.formatResponse(response.content, { type: 'welcome', quickResponses: ['시작하자'] });
   }
 
   async summarizeAndQuestion(context) {
