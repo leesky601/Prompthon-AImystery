@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader2, MessageCircle, ShoppingCart, Package, User, ChevronLeft, ChevronRight, Info, Tag, Calendar } from 'lucide-react';
+import { X, Send, Loader2, MessageCircle, ShoppingCart, Package, User, ChevronLeft, ChevronRight, Info, Tag, Calendar, CreditCard, CheckCircle, Wrench } from 'lucide-react';
 import productsData from '../data/products.json';
+import detailedProductsData from '../data/detailedProducts.json';
 
 interface Message {
   agent: string;
@@ -12,21 +13,21 @@ interface Message {
   quickResponses?: string[];
 }
 
-interface ProductInfo {
+interface DetailedProductInfo {
   id: string;
-  name: string;
-  model: string;
-  size?: string;
-  category?: string;
-  originalPrice: number;
-  discountPrice: number;
-  discountRate: number;
-  monthlyPrice?: number;
-  image: string;
-  images?: string[];
-  tags?: string[];
-  careship?: boolean;
-  subscription?: boolean;
+  이름: string;
+  설명: string;
+  구매가격정보: number;
+  구독가격_3년: number | null;
+  구독가격_4년: number | null;
+  구독가격_5년: number | null;
+  구독가격_6년: number | null;
+  구독장점: string[];
+  케어서비스빈도: string;
+  케어서비스유형: string[];
+  케어서비스설명: string;
+  케어서비스가격정보: string;
+  image?: string;
 }
 
 interface ChatbotWindowProps {
@@ -44,7 +45,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const [isTyping, setIsTyping] = useState(false);
   const [conversationState, setConversationState] = useState('welcome');
   const [showProductInfo, setShowProductInfo] = useState(true);
-  const [currentProduct, setCurrentProduct] = useState<ProductInfo | null>(null);
+  const [detailedProduct, setDetailedProduct] = useState<DetailedProductInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -60,11 +61,32 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   // Load product information when productId is provided
   useEffect(() => {
     if (productId) {
-      // Find product from the data
-      const allProducts = [...productsData.bestProducts];
-      const product = allProducts.find(p => p.id === productId);
-      if (product) {
-        setCurrentProduct(product as ProductInfo);
+      // Find detailed product from the data
+      const detailedProduct = detailedProductsData.products.find(p => p.id === productId);
+      if (detailedProduct) {
+        setDetailedProduct(detailedProduct as DetailedProductInfo);
+      } else {
+        // Fallback to basic products data if not found in detailed
+        const basicProduct = productsData.bestProducts.find(p => p.id === productId);
+        if (basicProduct) {
+          // Create a detailed product object from basic data
+          setDetailedProduct({
+            id: basicProduct.id,
+            이름: basicProduct.name,
+            설명: basicProduct.name,
+            구매가격정보: basicProduct.discountPrice,
+            구독가격_3년: null,
+            구독가격_4년: null,
+            구독가격_5년: null,
+            구독가격_6년: basicProduct.monthlyPrice || null,
+            구독장점: [],
+            케어서비스빈도: "",
+            케어서비스유형: [],
+            케어서비스설명: "",
+            케어서비스가격정보: "",
+            image: basicProduct.image
+          });
+        }
       }
     }
   }, [productId]);
@@ -257,7 +279,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
           <h2 className="text-xl font-bold">LG 가전 구독 할래말래?</h2>
         </div>
         <div className="flex items-center space-x-2">
-          {currentProduct && (
+          {detailedProduct && (
             <button
               onClick={() => setShowProductInfo(!showProductInfo)}
               className="p-2 hover:bg-red-800 rounded-full transition-colors"
@@ -278,7 +300,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       {/* Main Content Area with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Messages Container */}
-        <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && currentProduct ? 'mr-0' : ''}`}>
+        <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}>
         {messages.map((message, index) => (
           <div
             key={index}
@@ -336,118 +358,163 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       </div>
 
       {/* Product Info Sidebar */}
-      {showProductInfo && currentProduct && (
-        <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
+      {showProductInfo && detailedProduct && (
+        <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
           <div className="p-4">
             {/* Product Image */}
-            <div className="mb-4">
-              <img 
-                src={currentProduct.image} 
-                alt={currentProduct.name}
-                className="w-full h-48 object-contain rounded-lg bg-gray-100"
-              />
-            </div>
+            {detailedProduct.image && (
+              <div className="mb-4">
+                <img 
+                  src={detailedProduct.image} 
+                  alt={detailedProduct.이름}
+                  className="w-full h-48 object-contain rounded-lg bg-gray-100"
+                />
+              </div>
+            )}
 
             {/* Product Title */}
-            <h3 className="text-lg font-bold mb-2">{currentProduct.name}</h3>
-            <p className="text-sm text-gray-600 mb-4">{currentProduct.model}</p>
+            <h3 className="text-lg font-bold mb-2">{detailedProduct.이름}</h3>
+            <p className="text-sm text-gray-600 mb-4">{detailedProduct.설명}</p>
 
-            {/* Price Information */}
-            <div className="space-y-3 mb-4">
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">정가</span>
-                  <span className="text-sm line-through text-gray-400">
-                    {currentProduct.originalPrice.toLocaleString()}원
-                  </span>
+            {/* Purchase vs Subscription Price Cards */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* Purchase Card */}
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="flex items-center mb-2">
+                  <ShoppingCart className="w-4 h-4 mr-1 text-blue-600" />
+                  <span className="text-sm font-semibold text-blue-900">일시불 구매</span>
                 </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold">할인가</span>
-                  <div className="text-right">
-                    <span className="text-red-500 font-bold mr-2">{currentProduct.discountRate}%</span>
-                    <span className="text-lg font-bold text-gray-900">
-                      {currentProduct.discountPrice.toLocaleString()}원
-                    </span>
+                <p className="text-xl font-bold text-blue-700">
+                  {detailedProduct.구매가격정보.toLocaleString()}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">원</p>
+              </div>
+
+              {/* Subscription Card */}
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <div className="flex items-center mb-2">
+                  <CreditCard className="w-4 h-4 mr-1 text-green-600" />
+                  <span className="text-sm font-semibold text-green-900">월 구독</span>
+                </div>
+                <div className="text-xs space-y-1">
+                  {detailedProduct.구독가격_3년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">3년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_3년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                  {detailedProduct.구독가격_4년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">4년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_4년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                  {detailedProduct.구독가격_5년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">5년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_5년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                  {detailedProduct.구독가격_6년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">6년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_6년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Subscription Benefits */}
+            {detailedProduct.구독장점 && detailedProduct.구독장점.length > 0 && (
+              <div className="mb-4 bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
+                  <span className="text-sm font-semibold">구독 혜택</span>
+                </div>
+                <ul className="space-y-2">
+                  {detailedProduct.구독장점.map((benefit, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <span className="text-green-500 mr-2 mt-0.5">•</span>
+                      <span className="text-xs text-gray-700 leading-relaxed">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Care Service Info */}
+            {detailedProduct.케어서비스설명 && detailedProduct.케어서비스설명 !== "" && (
+              <div className="mb-4 bg-purple-50 p-3 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <Wrench className="w-4 h-4 mr-1 text-purple-600" />
+                  <span className="text-sm font-semibold text-purple-900">케어 서비스</span>
+                </div>
+                <p className="text-xs text-purple-700 mb-2">{detailedProduct.케어서비스설명}</p>
+                
+                {detailedProduct.케어서비스빈도 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-800">방문 주기:</span>
+                    <span className="text-xs text-purple-600 ml-1">{detailedProduct.케어서비스빈도}</span>
                   </div>
-                </div>
-                {currentProduct.monthlyPrice && (
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <span className="text-sm text-gray-600">월 구독료</span>
-                    <span className="text-lg font-bold text-green-600">
-                      {currentProduct.monthlyPrice.toLocaleString()}원
-                    </span>
+                )}
+                
+                {detailedProduct.케어서비스유형 && detailedProduct.케어서비스유형.length > 0 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-800">서비스 유형:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {detailedProduct.케어서비스유형.map((type, idx) => (
+                        <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                          {type}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {detailedProduct.케어서비스가격정보 && detailedProduct.케어서비스가격정보 !== "없음" && (
+                  <div className="pt-2 border-t border-purple-200">
+                    <span className="text-xs font-semibold text-purple-800">가격 정보:</span>
+                    <p className="text-xs text-purple-600 mt-1">{detailedProduct.케어서비스가격정보}</p>
                   </div>
                 )}
               </div>
-            </div>
+            )}
 
-            {/* Tags */}
-            {currentProduct.tags && currentProduct.tags.length > 0 && (
-              <div className="mb-4">
-                <div className="flex items-center mb-2">
-                  <Tag className="w-4 h-4 mr-1 text-gray-500" />
-                  <span className="text-sm font-semibold">제품 특징</span>
+            {/* Total Cost Comparison */}
+            <div className="p-3 bg-gray-100 rounded-lg">
+              <h4 className="text-sm font-semibold mb-3 text-gray-800">총 비용 비교 (6년 기준)</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">일시불 구매</span>
+                  <span className="text-sm font-bold text-gray-800">
+                    {detailedProduct.구매가격정보.toLocaleString()}원
+                  </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {currentProduct.tags.map((tag, idx) => (
-                    <span key={idx} className="px-2 py-1 bg-gray-100 text-xs rounded-full">
-                      {tag}
+                {detailedProduct.구독가격_6년 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-600">6년 구독 총액</span>
+                    <span className="text-sm font-bold text-gray-800">
+                      {(detailedProduct.구독가격_6년 * 72).toLocaleString()}원
                     </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Services */}
-            <div className="space-y-2">
-              {currentProduct.careship && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>케어십 가능</span>
-                </div>
-              )}
-              {currentProduct.subscription && (
-                <div className="flex items-center space-x-2 text-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span>구독 가능</span>
-                </div>
-              )}
-            </div>
-
-            {/* Additional Info */}
-            {currentProduct.size && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center mb-1">
-                  <Info className="w-4 h-4 mr-1 text-blue-600" />
-                  <span className="text-sm font-semibold text-blue-900">크기</span>
-                </div>
-                <p className="text-sm text-blue-700">{currentProduct.size}</p>
-              </div>
-            )}
-
-            {/* Comparison Summary */}
-            <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-              <h4 className="text-sm font-semibold mb-2 text-yellow-900">구매 vs 구독 비교</h4>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">일시불 구매</span>
-                  <span className="font-semibold">{currentProduct.discountPrice.toLocaleString()}원</span>
-                </div>
-                {currentProduct.monthlyPrice && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">3년 구독 총액</span>
-                      <span className="font-semibold">
-                        {(currentProduct.monthlyPrice * 36).toLocaleString()}원
+                  </div>
+                )}
+                {detailedProduct.구독가격_6년 && (
+                  <div className="pt-2 mt-2 border-t border-gray-300">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-semibold text-gray-700">차액</span>
+                      <span className={`text-sm font-bold ${
+                        (detailedProduct.구독가격_6년 * 72) > detailedProduct.구매가격정보 
+                          ? 'text-red-600' 
+                          : 'text-green-600'
+                      }`}>
+                        {Math.abs((detailedProduct.구독가격_6년 * 72) - detailedProduct.구매가격정보).toLocaleString()}원
+                        {(detailedProduct.구독가격_6년 * 72) > detailedProduct.구매가격정보 
+                          ? ' 더 비쌈' 
+                          : ' 절약'}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">5년 구독 총액</span>
-                      <span className="font-semibold">
-                        {(currentProduct.monthlyPrice * 60).toLocaleString()}원
-                      </span>
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
