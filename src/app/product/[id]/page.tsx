@@ -264,115 +264,123 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Right: Product Info */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Badge */}
             {productInfo.badge && (
-              <div className="inline-flex items-center px-3 py-1 bg-blue-500 text-white text-sm rounded-full">
+              <div className="inline-flex items-center px-3 py-1.5 bg-[#0058A3] text-white text-xs font-medium rounded-full">
                 {productInfo.badge}
               </div>
             )}
 
-            {/* Product Title */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-              <div className="lg:col-span-2">
-                <h1 className="text-3xl font-bold mb-2">{productInfo.name}</h1>
-                <p className="text-xl text-gray-600">{productInfo.size}</p>
+            {/* Product Title & Subscription Button */}
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h1 className="text-[28px] leading-tight font-bold text-[#333] mb-1">{productInfo.name}</h1>
+                  <p className="text-lg text-[#666]">{productInfo.size}</p>
+                </div>
+                {productInfo.subscription && (
+                  <button
+                    onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
+                    className="subscribe-debate-detail-btn flex-shrink-0 mt-1"
+                    style={{
+                      transform: `translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
+                      transition: isButtonMoving 
+                        ? 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)' 
+                        : 'transform 1.5s cubic-bezier(0.23, 1, 0.32, 1)',
+                      zIndex: isButtonMoving ? 9999 : 'auto',
+                      boxShadow: isButtonMoving 
+                        ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
+                        : '0 8px 20px rgba(107,58,166,0.2)'
+                    }}
+                  >
+                    구독 할래말래?
+                  </button>
+                )}
               </div>
-              <div className="lg:col-span-1 flex justify-center lg:justify-end">
-                <button
-                  onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
-                  className="subscribe-debate-detail-btn"
-                  style={{
-                    transform: `translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
-                    transition: isButtonMoving 
-                      ? 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)' 
-                      : 'transform 1.5s cubic-bezier(0.23, 1, 0.32, 1)',
-                    zIndex: isButtonMoving ? 9999 : 'auto',
-                    boxShadow: isButtonMoving 
-                      ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
-                      : '0 8px 20px rgba(107,58,166,0.2)'
-                  }}
-                >
-                  구독 할래말래?
-                </button>
-              </div>
-            </div>
 
-            {/* Sales Counter */}
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>최근 7일간</span>
-              <span className="font-bold text-black">{salesCount.toLocaleString()}</span>
-              <span>대 판매되었어요</span>
+              {/* Sales Counter */}
+              <div className="flex items-center gap-1.5 text-sm text-[#666] mt-3">
+                <span>최근 7일간</span>
+                <span className="font-semibold text-[#111]">{salesCount.toLocaleString()}</span>
+                <span>대 판매되었어요</span>
+              </div>
             </div>
 
             {/* AR Experience */}
-            <div className="bg-gray-100 rounded-lg p-4">
+            <div className="bg-[#F8F9FA] rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <img 
                     src="https://www.lge.co.kr/lg5-common/images/KRP0008/icon_ar_logo.png" 
                     alt="AR" 
-                    className="w-8 h-8"
+                    className="w-7 h-7"
                   />
-                  <span className="font-medium">AR 체험 안내</span>
+                  <span className="text-[15px] font-medium text-[#333]">AR 체험 안내</span>
                 </div>
                 <button 
                   onClick={() => setShowARInfo(!showARInfo)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-[#999] hover:text-[#666] transition-colors"
                 >
-                  <Info className="w-5 h-5" />
+                  <Info className="w-4 h-4" />
                 </button>
               </div>
               
               {showARInfo && (
-                <div className="space-y-3 text-sm text-gray-600 mb-4">
-                  <p>AR 체험은 앱에서 이용하실 수 있습니다.</p>
-                  <p>* AR체험은 내 공간에 제품을 가상으로 배치해볼 수 있는 서비스입니다.</p>
+                <div className="space-y-2 mb-3">
+                  <p className="text-[13px] text-[#666]">AR 체험은 앱에서 이용하실 수 있습니다.</p>
+                  <p className="text-[12px] text-[#999]">* AR체험은 내 공간에 제품을 가상으로 배치해볼 수 있는 서비스입니다.</p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white rounded-lg border border-gray-300 hover:bg-gray-50">
-                  <img src="/google-play-icon.png" alt="Google Play" className="w-5 h-5" />
-                  <span className="text-sm">안드로이드 앱 설치하기</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button className="flex items-center justify-center gap-2 py-2.5 px-3 bg-white rounded-md border border-[#E5E7EB] hover:border-[#D1D5DB] hover:bg-[#FAFAFA] transition-all">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M17.5 12.5L12 18L6.5 12.5" stroke="#00875A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 18V6" stroke="#00875A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="text-[13px] text-[#333]">안드로이드 앱 설치하기</span>
                 </button>
-                <button className="flex items-center justify-center gap-2 py-2 px-3 bg-white rounded-lg border border-gray-300 hover:bg-gray-50">
-                  <img src="/app-store-icon.png" alt="App Store" className="w-5 h-5" />
-                  <span className="text-sm">아이폰 앱 설치하기</span>
+                <button className="flex items-center justify-center gap-2 py-2.5 px-3 bg-white rounded-md border border-[#E5E7EB] hover:border-[#D1D5DB] hover:bg-[#FAFAFA] transition-all">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M17.5 12.5L12 18L6.5 12.5" stroke="#0071E3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 18V6" stroke="#0071E3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="text-[13px] text-[#333]">아이폰 앱 설치하기</span>
                 </button>
               </div>
             </div>
 
             {/* Options Selection */}
-            <div className="space-y-3">
-              <h3 className="font-bold text-lg">옵션 선택</h3>
-              <button className="w-full py-3 px-4 text-left bg-white border border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                <span className="text-gray-500">옵션을 선택해주세요</span>
-                <ChevronDown className="float-right w-5 h-5 text-gray-400" />
+            <div className="space-y-2.5">
+              <h3 className="text-[15px] font-bold text-[#111]">옵션 선택</h3>
+              <button className="w-full py-3 px-4 text-left bg-white border border-[#D1D5DB] rounded-md hover:border-[#9CA3AF] transition-colors flex items-center justify-between">
+                <span className="text-[14px] text-[#999]">옵션을 선택해주세요</span>
+                <ChevronDown className="w-4 h-4 text-[#999]" />
               </button>
             </div>
 
             {/* Price Section */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-4">
+            <div className="bg-white rounded-lg border border-[#E5E7EB] p-5 space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">판매가</span>
-                <span className="text-lg">{productInfo.originalPrice.toLocaleString()}원</span>
+                <span className="text-[14px] text-[#666]">판매가</span>
+                <span className="text-[16px] text-[#333] line-through">{productInfo.originalPrice.toLocaleString()}원</span>
               </div>
               
-              <div className="flex justify-between items-center text-red-500">
-                <span>회원 할인</span>
-                <span className="font-medium">-{productInfo.memberDiscount.toLocaleString()}원</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-[#C30E2E]">회원 할인</span>
+                <span className="text-[16px] text-[#C30E2E] font-medium">-{productInfo.memberDiscount.toLocaleString()}원</span>
               </div>
 
-              <div className="flex justify-between items-center text-red-500">
-                <span>쿠폰 할인</span>
-                <span className="font-medium">-{productInfo.couponDiscount.toLocaleString()}원</span>
+              <div className="flex justify-between items-center">
+                <span className="text-[14px] text-[#C30E2E]">쿠폰 할인</span>
+                <span className="text-[16px] text-[#C30E2E] font-medium">-{productInfo.couponDiscount.toLocaleString()}원</span>
               </div>
 
-              <div className="border-t pt-4">
+              <div className="border-t border-[#E5E7EB] pt-3 mt-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-bold">최대혜택가</span>
-                  <span className="text-2xl font-bold text-red-500">
+                  <span className="text-[16px] font-bold text-[#111]">최대혜택가</span>
+                  <span className="text-[24px] font-bold text-[#C30E2E]">
                     {productInfo.finalPrice.toLocaleString()}원
                   </span>
                 </div>
@@ -381,93 +389,93 @@ export default function ProductDetailPage() {
 
             {/* Subscription Price */}
             {productInfo.subscription && (
-              <div className="bg-blue-50 rounded-lg p-4 space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
+              <div className="bg-[#EBF5FF] rounded-lg p-4 space-y-2.5">
+                <h4 className="text-[15px] font-bold text-[#111] flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-[#0058A3]" />
                   구독 혜택가
                 </h4>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>이용 요금</span>
-                    <span>월 {productInfo.monthlyPrice.toLocaleString()}원</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] text-[#666]">이용 요금</span>
+                    <span className="text-[14px] text-[#999] line-through">월 {productInfo.monthlyPrice.toLocaleString()}원</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>할인 이용 요금</span>
-                    <span className="font-medium">월 {productInfo.monthlyDiscountPrice.toLocaleString()}원</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] text-[#666]">할인 이용 요금</span>
+                    <span className="text-[14px] text-[#333] font-medium">월 {productInfo.monthlyDiscountPrice.toLocaleString()}원</span>
                   </div>
-                  <div className="flex justify-between text-red-500">
-                    <span>제휴카드 할인</span>
-                    <span>월 최대 -{productInfo.cardMaxDiscount.toLocaleString()}원</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[13px] text-[#C30E2E]">제휴카드 할인</span>
+                    <span className="text-[14px] text-[#C30E2E]">월 최대 -{productInfo.cardMaxDiscount.toLocaleString()}원</span>
                   </div>
-                  <div className="flex justify-between pt-2 border-t font-bold">
-                    <span>최대혜택가</span>
-                    <span className="text-red-500">월 {productInfo.monthlyFinalPrice.toLocaleString()}원</span>
+                  <div className="flex justify-between items-center pt-2.5 border-t border-[#D1E9FF]">
+                    <span className="text-[14px] font-bold text-[#111]">최대혜택가</span>
+                    <span className="text-[18px] font-bold text-[#C30E2E]">월 {productInfo.monthlyFinalPrice.toLocaleString()}원</span>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Quantity & Actions */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <span className="font-medium">수량</span>
-                <div className="flex items-center border border-gray-300 rounded-lg">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="text-[14px] font-medium text-[#333]">수량</span>
+                <div className="flex items-center border border-[#D1D5DB] rounded-md overflow-hidden">
                   <button
                     onClick={() => handleQuantityChange(-1)}
-                    className="p-2 hover:bg-gray-100"
+                    className="p-2 hover:bg-[#F3F4F6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     disabled={quantity <= 1}
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-3.5 h-3.5 text-[#666]" />
                   </button>
-                  <span className="px-4 py-2 min-w-[60px] text-center">{quantity}</span>
+                  <span className="px-4 py-1.5 min-w-[50px] text-center text-[14px] text-[#111] border-x border-[#D1D5DB]">{quantity}</span>
                   <button
                     onClick={() => handleQuantityChange(1)}
-                    className="p-2 hover:bg-gray-100"
+                    className="p-2 hover:bg-[#F3F4F6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     disabled={quantity >= 9}
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5 text-[#666]" />
                   </button>
                 </div>
-                <span className="text-sm text-gray-500">(최대 9개)</span>
+                <span className="text-[12px] text-[#999]">(최대 9개)</span>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button className="py-4 px-6 bg-[#A50034] text-white rounded-lg font-medium hover:bg-[#8A002B] transition-colors">
+              <div className="grid grid-cols-2 gap-2">
+                <button className="py-3.5 px-6 bg-[#C30E2E] text-white rounded-md font-medium text-[15px] hover:bg-[#A50034] transition-colors">
                   바로구매
                 </button>
-                <button className="py-4 px-6 bg-white border-2 border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
+                <button className="py-3.5 px-6 bg-white border border-[#D1D5DB] rounded-md font-medium text-[15px] text-[#333] hover:bg-[#F9FAFB] transition-colors flex items-center justify-center gap-2">
+                  <ShoppingCart className="w-4 h-4" />
                   장바구니
                 </button>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setIsWishlisted(!isWishlisted)}
-                  className="flex-1 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-3 bg-white border border-[#D1D5DB] rounded-md hover:bg-[#F9FAFB] transition-colors flex items-center justify-center gap-1.5"
                 >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
-                  <span>찜하기</span>
+                  <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-[#C30E2E] text-[#C30E2E]' : 'text-[#666]'}`} />
+                  <span className="text-[13px] text-[#333]">찜하기</span>
                 </button>
-                <button className="flex-1 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                  <RefreshCw className="w-5 h-5" />
-                  <span>비교하기</span>
+                <button className="flex-1 py-2.5 px-3 bg-white border border-[#D1D5DB] rounded-md hover:bg-[#F9FAFB] transition-colors flex items-center justify-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 text-[#666]" />
+                  <span className="text-[13px] text-[#333]">비교하기</span>
                 </button>
-                <button className="flex-1 py-3 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                  <Share2 className="w-5 h-5" />
-                  <span>공유하기</span>
+                <button className="flex-1 py-2.5 px-3 bg-white border border-[#D1D5DB] rounded-md hover:bg-[#F9FAFB] transition-colors flex items-center justify-center gap-1.5">
+                  <Share2 className="w-4 h-4 text-[#666]" />
+                  <span className="text-[13px] text-[#333]">공유하기</span>
                 </button>
               </div>
             </div>
 
             {/* Careship Notice */}
             {productInfo.careship && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div className="space-y-2">
-                    <p className="font-medium">선택하신 제품은 케어십이 필요한 제품입니다.</p>
-                    <p className="text-sm text-gray-600">
+              <div className="bg-[#FFF8E6] border border-[#FFE4A1] rounded-lg p-4">
+                <div className="flex items-start gap-2.5">
+                  <Shield className="w-4 h-4 text-[#F59E0B] flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1.5">
+                    <p className="text-[14px] font-medium text-[#333]">선택하신 제품은 케어십이 필요한 제품입니다.</p>
+                    <p className="text-[13px] text-[#666] leading-relaxed">
                       케어십은 케어매니저가 주기적으로 방문하여 친절하게 관리해드리는 서비스입니다.
                     </p>
                   </div>

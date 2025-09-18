@@ -60,29 +60,31 @@
   }
 
   .subscribe-debate-detail-btn {
-    width: 90%;
-    height: 60px;
+    padding: 10px 24px;
     background: linear-gradient(135deg, #6B3AA6, #00A9CE);
     border: 2px solid transparent;
-    border-radius: 30px;
+    border-radius: 25px;
     color: white;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: bold;
-    margin: 20px auto;
     cursor: pointer;
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
     will-change: transform;
+    min-width: 140px;
   }
 
   .subscribe-debate-detail-btn::before {
     content: "적절하긴해~";
     position: absolute;
-    top: 5px;
-    right: 20px;
-    font-size: 12px;
+    top: -18px;
+    right: 10px;
+    font-size: 11px;
     opacity: 0.8;
     animation: float 3s ease-in-out infinite;
   }
