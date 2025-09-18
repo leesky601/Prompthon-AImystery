@@ -40,10 +40,7 @@ export default function ProductDetailPage() {
   const [showARInfo, setShowARInfo] = useState(false);
   const [showDeliveryInfo, setShowDeliveryInfo] = useState(false);
   
-  // Mouse tracking and button animation states
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [buttonPosition, setButtonPosition] = useState({ x: 0, y: 0 });
-  const [isButtonMoving, setIsButtonMoving] = useState(false);
+
 
   // Get product data from JSON based on ID
   const productData = productsData.bestProducts.find(product => product.id === params.id) || productsData.bestProducts[0];
@@ -83,91 +80,7 @@ export default function ProductDetailPage() {
     setCurrentImageIndex(index);
   };
 
-  // Mouse tracking effect
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  // Button animation effect - moves to mouse every 8 seconds
-  // Animation cycle: 1.8s move to mouse → 1.8s return to origin = 3.6s total
-  // Then waits 4.4s before next cycle (3.6s + 4.4s = 8s interval)
-  useEffect(() => {
-    let animationInterval: NodeJS.Timeout;
-    let returnTimeout: NodeJS.Timeout;
-    let resetTimeout: NodeJS.Timeout;
-    
-    // Function to perform animation
-    const performAnimation = () => {
-      const buttonElement = document.querySelector('.subscribe-debate-side-btn') as HTMLElement;
-      if (buttonElement) {
-        const buttonRect = buttonElement.getBoundingClientRect();
-        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
-        const buttonCenterY = buttonRect.top + buttonRect.height / 2;
-        
-        // Calculate offset to mouse position with easing
-        const targetX = (mousePosition.x - buttonCenterX) * 0.9;
-        const targetY = (mousePosition.y - buttonCenterY) * 0.9;
-        
-        // Set moving state and move to mouse position
-        setIsButtonMoving(true);
-        setButtonPosition({
-          x: targetX,
-          y: targetY
-        });
-
-        // Return to original position after 1.8 seconds
-        returnTimeout = setTimeout(() => {
-          setButtonPosition({ x: 0, y: 0 });
-        }, 1800);
-        
-        // Reset moving flag after complete animation cycle (3.6 seconds = 1.8s move + 1.8s return)
-        resetTimeout = setTimeout(() => {
-          setIsButtonMoving(false);
-        }, 3600);
-      }
-    };
-
-    // Start first animation after 500ms initial delay
-    const initialTimeout = setTimeout(() => {
-      performAnimation();
-      
-      // Then repeat exactly every 8 seconds
-      animationInterval = setInterval(performAnimation, 8000);
-    }, 500);
-
-    // Cleanup function
-    return () => {
-      clearTimeout(initialTimeout);
-      clearTimeout(returnTimeout);
-      clearTimeout(resetTimeout);
-      clearInterval(animationInterval);
-    };
-  }, [mousePosition]); // Only depend on mouse position
-  
-  // Update mouse position separately
-  useEffect(() => {
-    if (!isButtonMoving) {
-      const buttonElement = document.querySelector('.subscribe-debate-side-btn') as HTMLElement;
-      if (buttonElement) {
-        const buttonRect = buttonElement.getBoundingClientRect();
-        const buttonCenterX = buttonRect.left + buttonRect.width / 2;
-        const buttonCenterY = buttonRect.top + buttonRect.height / 2;
-        
-        const targetX = (mousePosition.x - buttonCenterX) * 0.7;
-        const targetY = (mousePosition.y - buttonCenterY) * 0.7;
-        
-        // Store the target position for next animation
-        if (isButtonMoving) {
-          setButtonPosition({ x: targetX, y: targetY });
-        }
-      }
-    }
-  }, [mousePosition, isButtonMoving]);
 
   return (
     <div className="min-h-screen bg-gray-50 relative">
@@ -177,13 +90,20 @@ export default function ProductDetailPage() {
           onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
           className="subscribe-debate-side-btn fixed right-8 top-1/2 -translate-y-1/2 z-50 hidden xl:block"
           style={{
-            transform: `translateY(-50%) translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
-            transition: isButtonMoving 
-              ? 'transform 1.2s cubic-bezier(0.23, 1, 0.32, 1)' 
-              : 'transform 1.5s cubic-bezier(0.23, 1, 0.32, 1)',
-            boxShadow: isButtonMoving 
-              ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
-              : '0 8px 20px rgba(107,58,166,0.2)'
+            boxShadow: '0 8px 20px rgba(107,58,166,0.2)',
+            background: 'linear-gradient(135deg, #6B3AA6, #00A9CE)',
+            color: 'white',
+            padding: '14px 32px',
+            borderRadius: '28px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            border: '2px solid transparent',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            minWidth: '150px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           구독 할래말래?
@@ -772,74 +692,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Fixed Side Subscription Button - Only visible on larger screens */}
-      {productInfo.subscription && (
-        <div
-          className="hidden xl:block"
-          style={{
-            position: 'fixed',
-            right: '30px',
-            top: '50%',
-            transform: `translateY(-50%) translate(${buttonPosition.x}px, ${buttonPosition.y}px)`,
-            transition: isButtonMoving 
-              ? 'transform 1.8s cubic-bezier(0.23, 1, 0.32, 1)' 
-              : 'transform 1.8s cubic-bezier(0.23, 1, 0.32, 1)',
-            zIndex: isButtonMoving ? 9999 : 1000,
-            willChange: 'transform'
-          }}
-        >
-          {/* Floating text */}
-          <span 
-            style={{
-              position: 'absolute',
-              top: '-25px',
-              right: '10px',
-              fontSize: '11px',
-              color: 'rgba(107, 58, 166, 0.9)',
-              fontWeight: 'bold',
-              whiteSpace: 'nowrap',
-              animation: 'float 3s ease-in-out infinite'
-            }}
-          >
-            적절하긴해~
-          </span>
-          
-          <button
-            onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
-            className="subscribe-debate-side-btn"
-            style={{
-              boxShadow: isButtonMoving 
-                ? '0 20px 40px rgba(107,58,166,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
-                : '0 8px 20px rgba(107,58,166,0.2)',
-              background: 'linear-gradient(135deg, #6B3AA6, #00A9CE)',
-              color: 'white',
-              padding: '14px 32px',
-              borderRadius: '28px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              border: '2px solid transparent',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              minWidth: '150px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #00A9CE, #6B3AA6)';
-              e.currentTarget.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'linear-gradient(135deg, #6B3AA6, #00A9CE)';
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
-          >
-            구독 할래말래?
-          </button>
-        </div>
-      )}
+
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white mt-20">
