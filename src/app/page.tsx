@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, User, ShoppingCart, Menu, ChevronDown, ChevronRight, Heart, SlidersHorizontal, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import ChatbotButton from '@/components/ChatbotButton';
 
 // Product data
 const products = [
@@ -243,7 +244,10 @@ export default function Home() {
 
       {/* Page Title */}
       <div className="max-w-[1440px] mx-auto px-4 pb-6">
-        <h1 className="text-4xl font-bold">TV</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl font-bold">TV</h1>
+          <ChatbotButton buttonText="할래말래?" />
+        </div>
       </div>
 
       {/* Category Tabs */}
