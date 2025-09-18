@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import ChatbotButton from '@/components/ChatbotButton';
 import { 
   ChevronLeft,
   ChevronRight,
@@ -113,38 +114,11 @@ export default function ProductDetailPage() {
             </span>
             
             {/* Main Button */}
-            <button
-              onClick={() => {
-                const productLinks: { [key: string]: string } = {
-                  '1': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=0',
-                  '2': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=1', 
-                  '3': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=2',
-                  '4': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=3'
-                };
-                const productId = params.id as string;
-                const link = productLinks[productId] || productLinks['1']; // 기본값은 첫 번째 제품
-                window.open(link, '_blank', 'noopener,noreferrer');
-              }}
+            <ChatbotButton 
+              productId={params.id as string}
+              buttonText="구독 할래말래?"
               className="subscribe-debate-side-btn"
-              style={{
-                boxShadow: '0 8px 20px rgba(107,58,166,0.2)',
-                background: 'linear-gradient(135deg, #6B3AA6, #00A9CE)',
-                color: 'white',
-                padding: '14px 32px',
-                borderRadius: '28px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                border: '2px solid transparent',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                minWidth: '150px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              구독 할래말래?
-            </button>
+            />
           </div>
         </div>
       )}

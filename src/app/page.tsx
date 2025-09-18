@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Search, User, ShoppingCart, Menu, ChevronDown, ChevronRight, Heart, SlidersHorizontal, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import ChatbotButton from '@/components/ChatbotButton';
 
 // Import JSON data
 import productsData from '../data/products.json';
@@ -404,22 +405,13 @@ export default function Home() {
                           최대혜택가 {product.monthlyPrice.toLocaleString()}원
                         </p>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          const productLinks: { [key: string]: string } = {
-                            '1': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=0',
-                            '2': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=1', 
-                            '3': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=2',
-                            '4': 'https://unexpeditious-tricia-unblenchingly.ngrok-free.app/static/index.html?product=3'
-                          };
-                          const link = productLinks[product.id] || productLinks['1']; // 기본값은 첫 번째 제품
-                          window.open(link, '_blank', 'noopener,noreferrer');
-                        }}
-                        className="subscribe-debate-btn w-full mt-2"
-                      >
-                        구독 할래말래?
-                      </button>
+                      <div onClick={(e) => e.preventDefault()}>
+                        <ChatbotButton 
+                          productId={product.id}
+                          buttonText="구독 할래말래?"
+                          className="w-full mt-2"
+                        />
+                      </div>
                     </div>
                   </Link>
                 ))}
