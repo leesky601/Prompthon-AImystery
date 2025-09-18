@@ -84,30 +84,60 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 relative">
-      {/* Fixed Subscription Button on Right Side */}
+      {/* Fixed Subscription Button on Right Side with Animated Texts */}
       {productInfo.subscription && (
-        <button
-          onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
-          className="subscribe-debate-side-btn fixed right-8 top-1/2 -translate-y-1/2 z-50 hidden xl:block"
-          style={{
-            boxShadow: '0 8px 20px rgba(107,58,166,0.2)',
-            background: 'linear-gradient(135deg, #6B3AA6, #00A9CE)',
-            color: 'white',
-            padding: '14px 32px',
-            borderRadius: '28px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            border: '2px solid transparent',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            minWidth: '150px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          구독 할래말래?
-        </button>
+        <div className="fixed right-8 top-1/2 -translate-y-1/2 z-50 hidden xl:block">
+          {/* Animated Floating Texts */}
+          <div className="relative">
+            {/* Left side text - "애매하긴해~" */}
+            <span 
+              className="animate-blink-left absolute -left-16 -top-6 text-sm font-medium whitespace-nowrap"
+              style={{
+                color: '#8B5CF6',
+                textShadow: '0 1px 3px rgba(139, 92, 246, 0.3)',
+                animationDelay: '0s'
+              }}
+            >
+              애매하긴해~
+            </span>
+            
+            {/* Right side text - "적절하긴해~" */}
+            <span 
+              className="animate-blink-right absolute -right-16 -top-6 text-sm font-medium whitespace-nowrap"
+              style={{
+                color: '#06B6D4',
+                textShadow: '0 1px 3px rgba(6, 182, 212, 0.3)',
+                animationDelay: '1.5s'
+              }}
+            >
+              적절하긴해~
+            </span>
+            
+            {/* Main Button */}
+            <button
+              onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
+              className="subscribe-debate-side-btn"
+              style={{
+                boxShadow: '0 8px 20px rgba(107,58,166,0.2)',
+                background: 'linear-gradient(135deg, #6B3AA6, #00A9CE)',
+                color: 'white',
+                padding: '14px 32px',
+                borderRadius: '28px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                border: '2px solid transparent',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                minWidth: '150px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              구독 할래말래?
+            </button>
+          </div>
+        </div>
       )}
       {/* Header */}
       <header className="w-full bg-white border-b sticky top-0 z-40">

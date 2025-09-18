@@ -119,6 +119,23 @@
     }
   }
 
+  /* Blinking animations for debate texts */
+  @keyframes blink-left {
+    0% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+    15% { opacity: 1; transform: translateY(0px) scale(1); }
+    35% { opacity: 1; transform: translateY(0px) scale(1); }
+    50% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+    100% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+  }
+
+  @keyframes blink-right {
+    0% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+    50% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+    65% { opacity: 1; transform: translateY(0px) scale(1); }
+    85% { opacity: 1; transform: translateY(0px) scale(1); }
+    100% { opacity: 0; transform: translateY(-2px) scale(0.95); }
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
@@ -154,5 +171,14 @@
 
   .border-lg-primary {
     border-color: #A50034;
+  }
+
+  /* Blinking text animations */
+  .animate-blink-left {
+    animation: blink-left 3s ease-in-out infinite;
+  }
+
+  .animate-blink-right {
+    animation: blink-right 3s ease-in-out infinite;
   }
 }
