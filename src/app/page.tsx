@@ -407,7 +407,14 @@ export default function Home() {
                       <button
                         onClick={(e) => {
                           e.preventDefault();
-                          alert('구독 서비스 페이지로 이동합니다!');
+                          const productLinks: { [key: string]: string } = {
+                            '1': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=0',
+                            '2': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=1', 
+                            '3': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=2',
+                            '4': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=3'
+                          };
+                          const link = productLinks[product.id] || productLinks['1']; // 기본값은 첫 번째 제품
+                          window.open(link, '_blank', 'noopener,noreferrer');
                         }}
                         className="subscribe-debate-btn w-full mt-2"
                       >

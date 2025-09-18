@@ -91,7 +91,7 @@ export default function ProductDetailPage() {
           <div className="relative">
             {/* Left side text - "애매하긴해~" */}
             <span 
-              className="animate-blink-left absolute -left-20 -top-8 text-sm font-medium whitespace-nowrap"
+              className="animate-blink-left absolute -left-12 -top-8 text-sm font-medium whitespace-nowrap"
               style={{
                 color: '#8B5CF6',
                 textShadow: '0 1px 3px rgba(139, 92, 246, 0.3)'
@@ -102,11 +102,11 @@ export default function ProductDetailPage() {
             
             {/* Right side text - "적절하긴해~" */}
             <span 
-              className="animate-blink-right absolute -right-10 -top-8 text-sm font-medium whitespace-nowrap"
+              className="animate-blink-right absolute -right-6 -top-8 text-sm font-medium whitespace-nowrap"
               style={{
                 color: '#06B6D4',
                 textShadow: '0 1px 3px rgba(6, 182, 212, 0.3)',
-                transform: 'translateX(-50%)' // 화면 밖으로 나가지 않도록 조정
+                transform: 'translateX(-30%)' // 버튼 중앙으로 더 가깝게 조정
               }}
             >
               적절하긴해~
@@ -114,7 +114,17 @@ export default function ProductDetailPage() {
             
             {/* Main Button */}
             <button
-              onClick={() => alert('구독 서비스에 관심을 보여주셔서 감사합니다!')}
+              onClick={() => {
+                const productLinks: { [key: string]: string } = {
+                  '1': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=0',
+                  '2': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=1', 
+                  '3': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=2',
+                  '4': 'https://af959cbcea05.ngrok-free.app/static/index.html?product=3'
+                };
+                const productId = params.id as string;
+                const link = productLinks[productId] || productLinks['1']; // 기본값은 첫 번째 제품
+                window.open(link, '_blank', 'noopener,noreferrer');
+              }}
               className="subscribe-debate-side-btn"
               style={{
                 boxShadow: '0 8px 20px rgba(107,58,166,0.2)',
