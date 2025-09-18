@@ -16,10 +16,28 @@ const ChatbotButton: React.FC<ChatbotButtonProps> = ({
 }) => {
   const openChatWindow = () => {
     const url = productId ? `/chat?productId=${encodeURIComponent(productId)}` : '/chat';
-    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    // Try to open as a new popup window (not just a new tab)
+    const features = [
+      'popup=yes',
+      'noopener',
+      'resizable=yes',
+      'scrollbars=yes',
+      'width=' + Math.max(980, Math.floor(window.screen.width * 0.9)),
+      'height=' + Math.max(720, Math.floor(window.screen.height * 0.9)),
+      'left=' + Math.floor((window.screen.width - Math.max(980, Math.floor(window.screen.width * 0.9))) / 2),
+      'top=' + Math.floor((window.screen.height - Math.max(720, Math.floor(window.screen.height * 0.9))) / 2)
+    ].join(',');
+    const win = window.open(url, 'lg-chatbot-window', features);
     if (!win) {
-      // popup blocked, fallback to same tab
-      window.location.href = url;
+      // Fallback to new tab if popup blocked
+      const tab = window.open(url, '_blank');
+      if (!tab) {
+        // As last resort, navigate current tab
+        window.location.href = url;
+      }
+    } else {
+      // Focus the newly opened window
+      win.focus();
     }
   };
 

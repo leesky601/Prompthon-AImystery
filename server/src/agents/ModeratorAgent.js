@@ -128,33 +128,35 @@ class ModeratorAgent extends BaseAgent {
     try {
       const conversationHistory = context.conversationHistory || [];
       const userResponses = conversationHistory.filter(msg => msg.role === 'user');
-      
-      let userContext = '';
-      if (userResponses.length > 0) {
-        userContext = '\n[사용자 응답 분석]\n';
-        userResponses.forEach(response => {
-          userContext += `- ${response.content}\n`;
-        });
-      }
+
+      // Extract user intent signals
+      const userContextLines = userResponses.map(r => `- ${r.content}`).join('\n');
+      const userContext = userContextLines ? `\n[사용자 응답 분석]\n${userContextLines}\n` : '';
 
       const messages = [{
         role: 'user',
-        content: `전체 대화를 분석하여 이 사용자에게 구매와 구독 중 어떤 것이 더 적합한지 결론을 내려주세요.
-        
-${userContext}
+        content: `다음 대화 기록을 바탕으로 '구매' 또는 '구독' 중 하나를 명확히 추천하세요.
+반드시 아래 형식을 지키세요:
 
-결론은 명확하되, 사용자의 상황과 선호도를 고려하여 개인화된 추천을 제공하세요.`
+[최종 결론]: (구매|구독) 중 하나만 기재
+[적합도]: 구매 XX%, 구독 YY% (합계 100%)
+[핵심 근거 3줄]:
+- 근거1
+- 근거2
+- 근거3
+[다음 단계 제안 1줄]: 구체적 행동 제시
+${userContext}`
       }];
 
       const systemPrompt = this.getSystemPrompt() + `
 [결론 도출 지침]
-1. 사용자의 응답과 관심사를 종합 분석
-2. 구매 vs 구독의 적합도를 백분율로 표현
-3. 최종 추천과 그 이유를 명확히 설명
-4. 추천하는 선택의 다음 단계 안내
+- 두 선택지를 비교해도, 최종 결론은 반드시 하나로 단정
+- 적합도는 정수 %로 표현해 총합 100%
+- 근거는 사용자 응답과 이전 대화에서 나온 포인트를 인용
+- 다음 단계는 구매/구독 각각의 CTA 중 해당 결론에 맞게 하나만 제안
 `;
 
-      const response = await this.generateResponse(messages, systemPrompt, 0.6);
+      const response = await this.generateResponse(messages, systemPrompt, 0.4);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to generate conclusion');
@@ -167,7 +169,7 @@ ${userContext}
     } catch (error) {
       console.error('ModeratorAgent Conclusion Error:', error);
       return this.formatResponse(
-        '종합적으로 봤을 때, 당신에게는 구독이 더 적합해 보이긴해. 하지만 최종 결정은 당신의 몫이긴해!',
+        '[최종 결론]: 구독\n[적합도]: 구매 40%, 구독 60%\n[핵심 근거 3줄]:\n- 초기 비용 부담을 피하고 싶다는 신호\n- 최신 기능 및 케어 서비스 선호\n- 거주/라이프스타일 변화 가능성을 시사\n[다음 단계 제안 1줄]: 구독 옵션을 선택하고 상담원 연결을 진행하자긴해',
         {
           type: 'conclusion',
           conversationEnded: true

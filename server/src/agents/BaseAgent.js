@@ -9,12 +9,61 @@ class BaseAgent {
     this.searchConnector = new AzureSearchConnector();
   }
 
-  // Format response with agent metadata
+  // Natural summarizer: keep only complete sentences up to maxLen
+  summarizeNaturally(raw, maxLen = 240) {
+    if (!raw) return '';
+    let text = String(raw).replace(/\s+/g, ' ').trim();
+    if (text.length <= maxLen) return text;
+
+    // 1) Try segmenting by special endings used in our tone
+    const segments = [];
+    const reEnding = /(긴해|하긴해|이긴해|맞긴해|할래말래)[.!?]?\s+/g;
+    let lastIndex = 0;
+    let m;
+    while ((m = reEnding.exec(text)) !== null) {
+      const endIndex = reEnding.lastIndex;
+      const seg = text.slice(lastIndex, endIndex).trim();
+      if (seg) segments.push(seg);
+      lastIndex = endIndex;
+      if (segments.join(' ').length >= maxLen) break;
+    }
+    // If segments collected and within limit, build summary from them
+    if (segments.length > 0) {
+      let summary = '';
+      for (const seg of segments) {
+        if ((summary + ' ' + seg).trim().length > maxLen) break;
+        summary = (summary ? summary + ' ' : '') + seg;
+      }
+      if (summary.length >= Math.min(80, Math.floor(maxLen * 0.5))) return summary.trim();
+    }
+
+    // 2) Fallback: sentence punctuation boundaries
+    const sentences = text.split(/(?<=[.!?\u2026\u3002\uFF01\uFF1F])\s+/);
+    if (sentences.length > 1) {
+      let summary = '';
+      for (const s of sentences) {
+        const seg = s.trim();
+        if (!seg) continue;
+        if ((summary + ' ' + seg).trim().length > maxLen) break;
+        summary = (summary ? summary + ' ' : '') + seg;
+      }
+      if (summary) return summary.trim();
+    }
+
+    // 3) Final fallback: cut at last whitespace before maxLen
+    const cut = text.slice(0, maxLen + 1);
+    const lastSpace = cut.lastIndexOf(' ');
+    const safe = lastSpace > 0 ? cut.slice(0, lastSpace) : text.slice(0, maxLen);
+    return safe.trim();
+  }
+
+  // Format response with agent metadata (with natural summarization)
   formatResponse(content, metadata = {}) {
+    const concise = this.summarizeNaturally(content, 260);
     return {
       agent: this.name,
       role: this.role,
-      content: content,
+      content: concise,
       timestamp: new Date().toISOString(),
       ...metadata
     };
