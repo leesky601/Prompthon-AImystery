@@ -52,6 +52,16 @@ class ModeratorAgent extends BaseAgent {
     try {
       const conversationHistory = context.conversationHistory || [];
       
+      // Build full conversation context
+      let fullContext = '';
+      if (conversationHistory.length > 0) {
+        fullContext = '\n[전체 대화 내역]\n';
+        conversationHistory.slice(-10).forEach(msg => {
+          const speaker = msg.role === 'user' ? '사용자' : (msg.agent || '봇');
+          fullContext += `${speaker}: ${msg.content}\n`;
+        });
+      }
+
       // Get last purchase and subscription arguments
       const recentPurchaseArgs = conversationHistory
         .filter(msg => msg.agent === '구매봇')
@@ -60,7 +70,7 @@ class ModeratorAgent extends BaseAgent {
         .filter(msg => msg.agent === '구독봇')
         .slice(-2);
 
-      let summaryContext = '';
+      let summaryContext = fullContext;
       
       if (recentPurchaseArgs.length > 0) {
         summaryContext += '\n[구매봇 최근 주장]\n';
@@ -82,13 +92,22 @@ class ModeratorAgent extends BaseAgent {
 
       const messages = [{
         role: 'user',
-        content: `다음 내용을 요약하고, 사용자에게 새로운 관점의 질문을 하세요: ${summaryContext}
+        content: `다음 대화 내용을 기반으로 사용자에게 맞춤형 질문을 하세요: ${summaryContext}
         
 아직 다루지 않은 주제: ${suggestedTopics.join(', ')}
-질문 후에는 사용자가 선택할 수 있는 예상 답변 2개를 제시하세요.`
+
+중요: 
+- 이전 대화 기록이 없다는 등의 시스템 메시지는 절대 언급하지 마세요
+- 자연스럽게 대화를 이어가세요
+- 사용자의 이전 응답을 참고하여 더 구체적인 질문을 하세요`
       }];
 
-      const systemPrompt = this.getSystemPrompt();
+      const systemPrompt = this.getSystemPrompt() + `
+절대 금지사항:
+- "이전 대화 기록이 없다"는 등의 시스템 메시지 언급 금지
+- "컨텍스트가 없다"는 등의 기술적 표현 사용 금지
+- 항상 자연스러운 대화체로 응답하기
+`;
       const response = await this.generateResponse(messages, systemPrompt, 0.7);
 
       if (!response.success) {
@@ -220,33 +239,66 @@ ${userContext}`
   }
 
   async generateQuickResponses(question, suggestedTopic) {
-    const topicResponses = {
+    // 대화 턴에 따라 다양한 응답 세트를 제공
+    const topicResponseSets = {
       '초기 비용 부담': [
-        '초기 비용이 부담스러워요',
-        '일시불로 구매할 여유가 있어요'
+        ['초기 비용이 부담스러워요', '일시불로 구매할 여유가 있어요'],
+        ['할부도 가능한가요?', '현금 구매 시 할인이 있나요?'],
+        ['월 납부액이 궁금해요', '총 비용 비교를 보고 싶어요']
       ],
       '케어 서비스 필요성': [
-        '케어 서비스가 꼭 필요해요',
-        '스스로 관리할 수 있어요'
+        ['케어 서비스가 꼭 필요해요', '스스로 관리할 수 있어요'],
+        ['AS 비용이 걱정돼요', '보증 기간이 얼마나 되나요?'],
+        ['정기 점검이 필요한가요?', '고장 나면 어떻게 하죠?']
       ],
       '제품 교체 주기': [
-        '최신 제품을 자주 바꾸고 싶어요',
-        '한 제품을 오래 사용하는 편이에요'
+        ['최신 제품을 자주 바꾸고 싶어요', '한 제품을 오래 사용하는 편이에요'],
+        ['3년 후에도 성능이 괜찮을까요?', '신제품 출시 주기가 어떻게 되나요?'],
+        ['중고로 팔 때 가격이 어느 정도인가요?', '업그레이드 혜택이 있나요?']
       ],
       '사용 패턴과 라이프스타일': [
-        '자주 이사를 다니는 편이에요',
-        '한 곳에 오래 정착해 있어요'
+        ['자주 이사를 다니는 편이에요', '한 곳에 오래 정착해 있어요'],
+        ['1인 가구에 적합한가요?', '가족이 늘어날 예정이에요'],
+        ['주말에만 사용해요', '매일 사용하는 필수품이에요']
       ],
       '장기 경제성': [
-        '장기적인 비용 절감이 중요해요',
-        '월 고정 지출이 편해요'
+        ['장기적인 비용 절감이 중요해요', '월 고정 지출이 편해요'],
+        ['5년 사용 시 총 비용이 궁금해요', '전기료 절약이 되나요?'],
+        ['감가상각을 고려하면 어떤가요?', '투자 가치가 있을까요?']
+      ],
+      '소유권의 가치': [
+        ['내 것이라는 느낌이 중요해요', '소유보다 사용이 중요해요'],
+        ['자산으로 남는 게 좋아요', '짐이 되는 건 싫어요'],
+        ['커스터마이징을 하고 싶어요', '기본 기능만 있으면 돼요']
+      ],
+      '최신 기술 선호도': [
+        ['항상 최신 기능을 써보고 싶어요', '검증된 기술이 안전해요'],
+        ['AI 기능이 정말 필요한가요?', '기존 모델과 차이가 큰가요?'],
+        ['스마트 기능 활용도가 높아요', '기본 기능만 써요']
+      ],
+      '이사나 환경 변화 가능성': [
+        ['곧 이사 예정이에요', '당분간 이사 계획 없어요'],
+        ['해외 거주 가능성이 있어요', '평생 여기 살 예정이에요'],
+        ['전세라서 불안해요', '자가 소유예요']
       ]
     };
 
-    return topicResponses[suggestedTopic] || [
-      '구독이 더 나을 것 같아요',
-      '구매가 더 합리적인 것 같아요'
+    // 대화 턴 수에 따라 다른 응답 세트 선택
+    const conversationTurn = Math.floor(Math.random() * 3); // 0, 1, 2 중 랜덤
+    const responseSet = topicResponseSets[suggestedTopic];
+    
+    if (responseSet && responseSet[conversationTurn]) {
+      return responseSet[conversationTurn];
+    }
+    
+    // 기본 응답들도 다양화
+    const defaultResponses = [
+      ['구독이 더 나을 것 같아요', '구매가 더 합리적인 것 같아요'],
+      ['더 자세히 알아보고 싶어요', '다른 옵션도 있나요?'],
+      ['실제 사용자 후기가 궁금해요', '전문가 의견을 듣고 싶어요']
     ];
+    
+    return defaultResponses[conversationTurn] || defaultResponses[0];
   }
 }
 

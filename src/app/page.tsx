@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Search, User, ShoppingCart, Menu, ChevronDown, ChevronRight, Heart, SlidersHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
 import ChatbotButton from '@/components/ChatbotButton';
-// import Link from 'next/link';
 
 // Import JSON data
 import productsData from '../data/products.json';

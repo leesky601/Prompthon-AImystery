@@ -7,29 +7,46 @@ class AzureSearchConnector {
   constructor() {
     this.endpoint = process.env.AZURE_SEARCH_ENDPOINT;
     this.apiKey = process.env.AZURE_SEARCH_API_KEY;
-    this.credential = new AzureKeyCredential(this.apiKey);
     
-    // Initialize search clients for different indexes
-    this.productInfoClient = new SearchClient(
-      this.endpoint,
-      'product-info-index',
-      this.credential
-    );
-    
-    this.purchaseInfoClient = new SearchClient(
-      this.endpoint,
-      'purchase-info-index',
-      this.credential
-    );
-    
-    this.subscriptionBenefitsClient = new SearchClient(
-      this.endpoint,
-      'subscription-benefits-index',
-      this.credential
-    );
+    // Check if Azure Search is configured
+    if (this.apiKey && this.apiKey !== 'your_azure_search_api_key_here' && this.endpoint && this.endpoint !== 'https://your-search-service.search.windows.net') {
+      this.credential = new AzureKeyCredential(this.apiKey);
+      
+      // Initialize search clients for different indexes
+      this.productInfoClient = new SearchClient(
+        this.endpoint,
+        'product-info-index',
+        this.credential
+      );
+      
+      this.purchaseInfoClient = new SearchClient(
+        this.endpoint,
+        'purchase-info-index',
+        this.credential
+      );
+      
+      this.subscriptionBenefitsClient = new SearchClient(
+        this.endpoint,
+        'subscription-benefits-index',
+        this.credential
+      );
+      
+      this.mockMode = false;
+    } else {
+      console.warn('⚠️  Azure Search not configured - using mock mode');
+      this.mockMode = true;
+    }
   }
 
   async searchProductInfo(query, filters = {}) {
+    if (this.mockMode) {
+      return {
+        success: true,
+        results: [],
+        count: 0
+      };
+    }
+    
     try {
       const searchOptions = {
         searchMode: 'all',
@@ -65,6 +82,14 @@ class AzureSearchConnector {
   }
 
   async searchPurchaseInfo(query, filters = {}) {
+    if (this.mockMode) {
+      return {
+        success: true,
+        results: [],
+        count: 0
+      };
+    }
+    
     try {
       const searchOptions = {
         searchMode: 'all',
@@ -100,6 +125,14 @@ class AzureSearchConnector {
   }
 
   async searchSubscriptionBenefits(query, filters = {}) {
+    if (this.mockMode) {
+      return {
+        success: true,
+        results: [],
+        count: 0
+      };
+    }
+    
     try {
       const searchOptions = {
         searchMode: 'all',
@@ -135,6 +168,13 @@ class AzureSearchConnector {
   }
 
   async getProductById(productId) {
+    if (this.mockMode) {
+      return {
+        success: true,
+        document: null
+      };
+    }
+    
     try {
       const result = await this.productInfoClient.getDocument(productId);
       return {

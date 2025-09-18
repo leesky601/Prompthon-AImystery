@@ -56,17 +56,30 @@ class SubscriptionAgent extends BaseAgent {
       const searchQuery = userMessage || '구독 장점 혜택 케어서비스';
       const subscriptionBenefitsResult = await this.searchConnector.searchSubscriptionBenefits(searchQuery);
       
-      // Build context for response generation
+      // Build context for response generation with full conversation history
       const messages = [];
       
       if (context.conversationHistory && context.conversationHistory.length > 0) {
-        // Include recent conversation history
-        const recentHistory = context.conversationHistory.slice(-5);
-        recentHistory.forEach(msg => {
-          messages.push({
-            role: msg.role === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          });
+        // Include ALL conversation history to maintain full context
+        context.conversationHistory.forEach(msg => {
+          // 구독봇 자신의 메시지는 assistant로, 다른 봇들의 메시지도 context로 포함
+          if (msg.agent === '구독봇') {
+            messages.push({
+              role: 'assistant',
+              content: msg.content
+            });
+          } else if (msg.role === 'user') {
+            messages.push({
+              role: 'user',
+              content: msg.content
+            });
+          } else if (msg.agent) {
+            // 다른 봇들의 발언도 시스템 컨텍스트로 포함
+            messages.push({
+              role: 'user',
+              content: `[${msg.agent}의 주장]: ${msg.content}`
+            });
+          }
         });
       }
 

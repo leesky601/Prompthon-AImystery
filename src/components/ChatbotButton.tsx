@@ -28,16 +28,12 @@ const ChatbotButton: React.FC<ChatbotButtonProps> = ({
       'top=' + Math.floor((window.screen.height - Math.max(720, Math.floor(window.screen.height * 0.9))) / 2)
     ].join(',');
     const win = window.open(url, 'lg-chatbot-window', features);
-    if (!win) {
-      // Fallback to new tab if popup blocked
-      const tab = window.open(url, '_blank');
-      if (!tab) {
-        // As last resort, navigate current tab
-        window.location.href = url;
-      }
-    } else {
+    if (win) {
       // Focus the newly opened window
       win.focus();
+    } else {
+      // If popup is blocked, just alert the user
+      alert('팝업이 차단되었습니다. 팝업 차단을 해제해 주세요.');
     }
   };
 
