@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 // Import JSON data
-import productsData from '../../../data/products.json';
+import productsData from '@/data/products.json';
 
 export default function ProductDetailPage() {
   const params = useParams();
