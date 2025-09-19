@@ -39,7 +39,6 @@ interface ChatbotWindowProps {
 
 const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClose, fullScreen = false }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -49,6 +48,8 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const [clickedButtons, setClickedButtons] = useState<Map<number, Set<string>>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  // 한글 IME 조합 여부만 추적 (이중 상태 제거: compositionValue 삭제)
+  // 입력은 별도 ChatInput 컴포넌트에서 비제어로 관리 (IME 안정성)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -151,13 +152,11 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
 
   // No delay needed - server handles timing with streaming
 
-  const sendMessage = async (message: string = inputValue, messageType: string = 'text') => {
+  const sendMessage = async (message: string, messageType: string = 'text') => {
     if (!sessionId || (!message && messageType === 'text')) return;
 
     // Clear input if it's a text message
-    if (messageType === 'text') {
-      setInputValue('');
-    }
+    // (비제어 입력이라 여기서 별도 clear 불필요)
 
     // Add user message to chat if it's text
     if (messageType === 'text' && message) {
@@ -264,7 +263,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     setMessages(prev => [...prev, userMessage]);
     
     // 입력 필드 비우기
-    setInputValue('');
+  // 비제어 입력이라 상태 초기화 불필요
     
     // 로딩 상태 설정
     setIsLoading(true);
@@ -409,6 +408,61 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       </div>
     );
   };
+
+  // 비제어 ChatInput: 부모 re-render 영향 최소화로 한글 조합 분리 방지
+  const ChatInput: React.FC<{disabled:boolean; onSend:(v:string)=>void; conversationState:string; isLoading:boolean;}> = React.memo(({disabled,onSend,conversationState,isLoading}) => {
+    const localRef = useRef<HTMLInputElement>(null);
+    const isComposingRef = useRef(false);
+    const [canSend, setCanSend] = useState(false); // 버튼 활성화용 최소 업데이트
+
+    const handleSend = () => {
+      if (!localRef.current) return;
+      const value = localRef.current.value.trim();
+      if (!value) return;
+      onSend(value);
+      // 전송 후 즉시 input 비우기 (조합 아님)
+      localRef.current.value = '';
+      setCanSend(false);
+    };
+
+    return (
+      <div className="flex gap-2 items-center">
+        <input
+          ref={localRef}
+          type="text"
+          onChange={(e) => {
+            // 조합 중이어도 value 자체는 브라우저가 관리 (비제어)
+            setCanSend(e.currentTarget.value.trim().length > 0);
+          }}
+          onCompositionStart={() => { isComposingRef.current = true; }}
+          onCompositionEnd={(e) => { isComposingRef.current = false; setCanSend(e.currentTarget.value.trim().length > 0); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !isComposingRef.current && !isLoading && conversationState !== 'conclusion') {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : (conversationState === 'welcome' ? '아래 "시작하자" 버튼을 눌러주세요' : '메시지를 입력하세요...')}
+          disabled={disabled}
+          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-full text-sm outline-none focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+          autoComplete="off"
+          autoFocus={conversationState !== 'welcome' && conversationState !== 'conclusion'}
+        />
+        <button
+          onClick={handleSend}
+          disabled={isLoading || !canSend || conversationState === 'conclusion'}
+          className="px-6 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-0.5 whitespace-nowrap overflow-hidden text-ellipsis min-w-[60px]"
+        >
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <Send className="w-5 h-5" />
+          )}
+          <span className="hidden sm:inline ml-2">전송</span>
+        </button>
+      </div>
+    );
+  });
 
   return (
     <Wrapper>
@@ -884,37 +938,12 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
 
       {/* Input Area */}
       <div className={`border-t bg-white p-4 ${fullScreen ? '' : 'rounded-b-lg'}`}>
-        <div className="flex gap-2 items-center">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !isLoading && conversationState !== 'conclusion' && inputValue.trim()) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : (conversationState === 'welcome' ? '아래 "시작하자" 버튼을 눌러주세요' : '메시지를 입력하세요...')}
-            disabled={isLoading || conversationState === 'conclusion'}
-            className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-full text-sm outline-none focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-            autoComplete="off"
-            autoFocus={conversationState !== 'welcome' && conversationState !== 'conclusion'}
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={isLoading || !inputValue.trim() || conversationState === 'conclusion'}
-            className="px-6 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-0.5 whitespace-nowrap overflow-hidden text-ellipsis min-w-[60px]"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-            <span className="hidden sm:inline ml-2">전송</span>
-          </button>
-        </div>
+        <ChatInput
+          disabled={isLoading || conversationState === 'conclusion'}
+          conversationState={conversationState}
+            isLoading={isLoading}
+          onSend={(text) => sendMessage(text, 'text')}
+        />
         {conversationState === 'welcome' && !clickedButtons.get(-1)?.has('all_buttons_clicked') && (
           <div className="mt-3 flex justify-center">
             <button
