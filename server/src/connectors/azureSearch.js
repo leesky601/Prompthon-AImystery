@@ -1,5 +1,11 @@
 import { SearchClient, AzureKeyCredential } from '@azure/search-documents';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -169,10 +175,49 @@ class AzureSearchConnector {
 
   async getProductById(productId) {
     if (this.mockMode) {
-      return {
-        success: true,
-        document: null
-      };
+      // Load products from local JSON file
+      try {
+        const productsPath = path.join(__dirname, '../../../src/data/detailedProducts.json');
+        const productsData = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
+        
+        // Find product by ID
+        const product = productsData.products.find(p => p.id === productId);
+        
+        if (product) {
+          // Transform to expected format
+          return {
+            success: true,
+            document: {
+              product_id: product.id,
+              product_name: product['이름'],
+              description: product['설명'],
+              purchase_price: product['구매가격정보'],
+              subscription_price_3y: product['구독가격_3년'],
+              subscription_price_4y: product['구독가격_4년'],
+              subscription_price_5y: product['구독가격_5년'],
+              subscription_price_6y: product['구독가격_6년'],
+              subscription_benefits: product['구독장점'] ? product['구독장점'].join(', ') : '',
+              care_service_frequency: product['케어서비스빈도'],
+              care_service_types: product['케어서비스유형'],
+              care_service_description: product['케어서비스설명'],
+              care_service_price: product['케어서비스가격정보'],
+              image: product.image
+            }
+          };
+        } else {
+          console.warn(`Product with ID ${productId} not found in local data`);
+          return {
+            success: true,
+            document: null
+          };
+        }
+      } catch (error) {
+        console.error('Error loading product from local file:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
     }
     
     try {

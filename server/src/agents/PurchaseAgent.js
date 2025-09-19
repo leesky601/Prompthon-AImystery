@@ -28,9 +28,14 @@ class PurchaseAgent extends BaseAgent {
 [현재 제품 정보]
 - 제품명: ${productInfo.product_name}
 - 구매가격: ${productInfo.purchase_price}원
-- 구매 혜택: ${productInfo.purchase_benefits}
 - 제품 설명: ${productInfo.description}
 `;
+      // Add subscription prices for comparison
+      if (productInfo.subscription_price_6y) {
+        const totalSubscriptionCost = productInfo.subscription_price_6y * 72; // 6년 총액
+        prompt += `- 6년 구독 총액: ${totalSubscriptionCost}원 (월 ${productInfo.subscription_price_6y}원 x 72개월)\n`;
+        prompt += `- 구매 대비 구독 추가비용: ${totalSubscriptionCost - productInfo.purchase_price}원\n`;
+      }
     }
 
     return prompt;
