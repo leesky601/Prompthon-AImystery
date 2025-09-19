@@ -529,7 +529,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                     {(() => {
                       const basicTotal = detailedProduct.구독가격_6년 * 72;
                       let finalTotal = basicTotal;
-                      let appliedBenefits = [];
+                      let appliedBenefits: string[] = [];
                       
                       // Parse benefits to calculate actual final cost
                       detailedProduct.구독장점.forEach(benefit => {
@@ -564,7 +564,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                         }
                         
                         // Check for first year discount
-                        if (benefit.includes('첫 12개월') && benefit.includes('반값')) {
+                        if (benefit.includes('첫 12개월') && benefit.includes('반값') && detailedProduct.구독가격_6년) {
                           const halfYearDiscount = detailedProduct.구독가격_6년 * 6;
                           finalTotal -= halfYearDiscount;
                           appliedBenefits.push(`첫년 반값: -${halfYearDiscount.toLocaleString()}원`);
@@ -613,7 +613,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                             {finalTotal <= detailedProduct.구매가격정보 && (
                               <div className="mt-2 p-2 bg-green-50 rounded">
                                 <p className="text-xs text-green-700 font-medium text-center">
-                                  ✨ 구독이 더 경제적입니다!
+                                  ✨ 최대 할인 적용 시 구독이 더 경제적입니다!
                                 </p>
                               </div>
                             )}
