@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, Loader2, MessageCircle, ShoppingCart, Package, User, ChevronLeft, ChevronRight, Info, Tag, Calendar, CreditCard, CheckCircle, Wrench } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { X, Loader2, MessageCircle, ShoppingCart, Package, User, ChevronLeft, ChevronRight, Info, Tag, Calendar, CreditCard, CheckCircle, Wrench } from 'lucide-react';
 import productsData from '../data/products.json';
 import detailedProductsData from '../data/detailedProducts.json';
+import ChatInput from './ChatInput';
 
 interface Message {
   agent: string;
@@ -39,7 +40,6 @@ interface ChatbotWindowProps {
 
 const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClose, fullScreen = false }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -47,7 +47,6 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const [showProductInfo, setShowProductInfo] = useState(true);
   const [detailedProduct, setDetailedProduct] = useState<DetailedProductInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -96,19 +95,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  // Focus input field when conversation starts
-  useEffect(() => {
-    // Only auto-focus when transitioning from welcome to ongoing conversation
-    if (conversationState === 'ongoing_debate' && inputRef.current && !isLoading) {
-      // Small delay to ensure DOM is ready after state transition
-      const timer = setTimeout(() => {
-        if (inputRef.current && document.activeElement !== inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [conversationState]); // Only depend on conversation state
+  // Remove auto-focus to prevent input issues
 
   const initializeChat = async () => {
     try {
@@ -159,13 +146,10 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   };
 
-  const sendMessage = async (message: string = inputValue, messageType: string = 'text') => {
+  const sendMessage = useCallback(async (message: string, messageType: string = 'text') => {
     if (!sessionId || (!message && messageType === 'text')) return;
 
-    // Clear input if it's a text message
-    if (messageType === 'text') {
-      setInputValue('');
-    }
+    // Message handling
 
     // Add user message to chat if it's text
     if (messageType === 'text' && message) {
@@ -221,17 +205,17 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       setIsLoading(false);
       setIsTyping(false);
     }
-  };
+  }, [sessionId, conversationState]);
 
-  const handleQuickResponse = (response: string) => {
+  const handleQuickResponse = useCallback((response: string) => {
     if (response === '시작하자') {
       sendMessage(response, 'start');
     } else {
       sendMessage(response, 'quick_response');
     }
-  };
+  }, [sendMessage]);
 
-  const getAgentIcon = (agent: string) => {
+  const getAgentIcon = useCallback((agent: string) => {
     switch (agent) {
       case '구매봇':
         return <ShoppingCart className="w-5 h-5" />;
@@ -244,9 +228,9 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       default:
         return <MessageCircle className="w-5 h-5" />;
     }
-  };
+  }, []);
 
-  const getAgentColor = (agent: string) => {
+  const getAgentColor = useCallback((agent: string) => {
     switch (agent) {
       case '구매봇':
         return 'bg-blue-500';
@@ -259,7 +243,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       default:
         return 'bg-gray-400';
     }
-  };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -317,7 +301,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
         <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}>
         {messages.map((message, index) => (
           <div
-            key={index}
+            key={`${message.timestamp}-${index}`}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={`flex items-start space-x-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
@@ -621,35 +605,11 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
 
       {/* Input Area */}
       <div className={`border-t bg-white p-4 ${fullScreen ? '' : 'rounded-b-lg'}`}>
-        <div className="flex space-x-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !isLoading && conversationState !== 'welcome' && inputValue.trim()) {
-                sendMessage();
-              }
-            }}
-            placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : (conversationState === 'welcome' ? '아래 "시작하자" 버튼을 눌러주세요' : '메시지를 입력하세요...')}
-            disabled={isLoading || conversationState === 'conclusion' || conversationState === 'welcome'}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            autoComplete="off"
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={isLoading || !inputValue || conversationState === 'conclusion' || conversationState === 'welcome'}
-            className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-            <span className="hidden sm:inline">전송</span>
-          </button>
-        </div>
+        <ChatInput
+          onSendMessage={sendMessage}
+          isLoading={isLoading}
+          conversationState={conversationState}
+        />
         {conversationState === 'welcome' && (
           <div className="mt-3 flex justify-center">
             <button
