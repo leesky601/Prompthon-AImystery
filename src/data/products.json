@@ -1,0 +1,151 @@
+{
+  "bestProducts": [
+    {
+      "id": "1",
+      "name": "LG QNED TV (벽걸이형)",
+      "model": "86QNED70THA",
+      "size": "217cm",
+      "category": "QNED",
+      "tags": ["스탠드형", "벽걸이형"],
+      "originalPrice": 2890000,
+      "discountPrice": 2720000,
+      "discountRate": 30,
+      "monthlyPrice": 113333,
+      "image": "https://ext.same-assets.com/2158291103/809746982.jpeg",
+      "images": [
+        "https://www.lge.co.kr/kr/images/tvs/md10466830/gallery/large-interior02.jpg",
+        "https://ext.same-assets.com/2158291103/809746982.jpeg",
+        "https://ext.same-assets.com/2158291103/2812149775.jpeg",
+        "https://ext.same-assets.com/2158291103/1164128085.jpeg",
+        "https://ext.same-assets.com/2158291103/1511966904.jpeg"
+      ],
+      "isBest": true,
+      "ranking": 1,
+      "badge": "으뜸효율환급 TV 1위",
+      "careship": true,
+      "subscription": true,
+      "salesCount": 1567,
+      "detailInfo": {
+        "memberDiscount": 1200000,
+        "couponDiscount": 70000,
+        "finalPrice": 1134600,
+        "monthlyPrice": 37750,
+        "monthlyDiscountPrice": 35000,
+        "cardMaxDiscount": 23000,
+        "monthlyFinalPrice": 12000
+      }
+    },
+    {
+      "id": "2",
+      "name": "LG 퓨리케어 오브제컬렉션 정수기",
+      "model": "WD520AWB",
+      "size": "맞춤 lite, 냉온정",
+      "tags": ["케어십", "구독"],
+      "originalPrice": 1342000,
+      "discountPrice": 789600,
+      "discountRate": 41,
+      "monthlyPrice": 37750,
+      "image": "https://www.lge.co.kr/kr/images/water-purifiers/md09951827/md09951827-280x280.jpg",
+      "images": [
+        "https://www.lge.co.kr/kr/images/water-purifiers/md09951827/gallery/large-interior01.jpg",
+        "https://www.lge.co.kr/kr/images/water-purifiers/md09951827/md09951827-280x280.jpg"
+      ],
+      "isBest": true,
+      "ranking": 2,
+      "badge": "오브제컬렉션",
+      "careship": true,
+      "subscription": true,
+      "salesCount": 1234,
+      "detailInfo": {
+        "memberDiscount": 463000,
+        "couponDiscount": 30000,
+        "finalPrice": 789600,
+        "monthlyPrice": 37750,
+        "monthlyDiscountPrice": 35000,
+        "cardMaxDiscount": 23000,
+        "monthlyFinalPrice": 12000
+      }
+    },
+    {
+      "id": "3",
+      "name": "LG 트롬 오브제컬렉션 건조기",
+      "model": "RD21ESE",
+      "size": "듀얼 인버터 히트펌프 21kg",
+      "tags": ["오브제컬렉션", "케어샵"],
+      "originalPrice": 2140000,
+      "discountPrice": 1236900,
+      "discountRate": 42,
+      "monthlyPrice": 37750,
+      "image": "https://www.lge.co.kr/kr/images/dryers/md09843832/md09843832-280x280.jpg",
+      "images": [
+        "https://www.lge.co.kr/kr/images/dryers/md09843832/gallery/large-interior01.jpg",
+        "https://www.lge.co.kr/kr/images/dryers/md09843832/md09843832-280x280.jpg"
+      ],
+      "isBest": true,
+      "ranking": 3,
+      "badge": "트롬 오브제컬렉션",
+      "careship": true,
+      "subscription": true,
+      "salesCount": 1234,
+      "detailInfo": {
+        "memberDiscount": 740000,
+        "couponDiscount": 70000,
+        "finalPrice": 1236900,
+        "monthlyPrice": 37750,
+        "monthlyDiscountPrice": 35000,
+        "cardMaxDiscount": 23000,
+        "monthlyFinalPrice": 12000
+      }
+    },
+    {
+      "id": "4",
+      "name": "LG 휘센 오브제컬렉션 쿨 에어컨 2in1",
+      "model": "FQ18FC1EU2",
+      "size": "1시리즈 / 58.5㎡",
+      "tags": ["오브제컬렉션", "쿨 에어컨"],
+      "originalPrice": 2896000,
+      "discountPrice": 2166900,
+      "discountRate": 25,
+      "monthlyPrice": 37750,
+      "image": "https://www.lge.co.kr/kr/images/air-conditioners/md10578854/md10578854-280x280.jpg",
+      "images": [
+        "https://www.lge.co.kr/kr/images/air-conditioners/md10561826/gallery/large-interior01.jpg",
+        "https://www.lge.co.kr/kr/images/air-conditioners/md10560845/gallery/fq18fc1ea1.akor_f1_2g.jpg",
+        "https://www.lge.co.kr/kr/images/air-conditioners/md10578854/md10578854-280x280.jpg"
+      ],
+      "isBest": true,
+      "ranking": 4,
+      "badge": "휘센 오브제컬렉션",
+      "careship": true,
+      "subscription": true,
+      "salesCount": 1234,
+      "detailInfo": {
+        "memberDiscount": 446000,
+        "couponDiscount": 120000,
+        "finalPrice": 2166900,
+        "monthlyPrice": 37750,
+        "monthlyDiscountPrice": 35000,
+        "cardMaxDiscount": 23000,
+        "monthlyFinalPrice": 12000
+      }
+    }
+  ],
+  "promotionalBanners": [
+    {
+      "id": "banner1",
+      "title": "올레드 으뜸 페스타",
+      "subtitle": "최대 100만원 캐시백부터 VOD 혜택까지",
+      "image": "https://page.gensparksite.com/v1/base64_upload/b85587ec12f3e8c5b9539715852d3bd7",
+      "backgroundColor": "banner-gradient-blue",
+      "hasAIChat": true
+    },
+    {
+      "id": "banner2",
+      "title": "TV + 사운드바 세트 기획전",
+      "subtitle": "포토리뷰 작성 시 3만 멜페이심 포인트 증정",
+      "image": "https://page.gensparksite.com/v1/base64_upload/47da7607db7694fa049da8d71456c209",
+      "backgroundColor": "banner-gradient-orange",
+      "hasAIChat": false
+    }
+  ]
+}

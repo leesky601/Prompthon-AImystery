@@ -1,0 +1,159 @@
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'express' imported from /home/user/webapp/server/src/index.js
+    at packageResolve (node:internal/modules/esm/resolve:873:9)
+    at moduleResolve (node:internal/modules/esm/resolve:946:18)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:642:12)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:591:25)
+    at ModuleLoader.resolve (node:internal/modules/esm/loader:574:38)
+    at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:236:38)
+    at ModuleJob._link (node:internal/modules/esm/module_job:130:49)
+2025-09-18T20:59:32: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-18T20:59:32: ⚠️  Please configure these in server/.env file
+2025-09-18T20:59:32: ⚠️  The server will start but some features may not work properly
+
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+Error: The OPENAI_API_KEY environment variable is missing or empty; either provide it, or instantiate the OpenAI client with an apiKey option, like new OpenAI({ apiKey: 'My API Key' }).
+    at new OpenAI (file:///home/user/webapp/server/node_modules/openai/index.mjs:48:19)
+    at new AzureOpenAIConnector (file:///home/user/webapp/server/src/connectors/azureOpenAI.js:16:19)
+    at new BaseAgent (file:///home/user/webapp/server/src/agents/BaseAgent.js:8:28)
+    at new PurchaseAgent (file:///home/user/webapp/server/src/agents/PurchaseAgent.js:5:5)
+    at new AgentOrchestrator (file:///home/user/webapp/server/src/services/AgentOrchestrator.js:9:26)
+    at file:///home/user/webapp/server/src/routes/chat.js:7:22
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async file:///home/user/webapp/server/src/index.js:34:21
+2025-09-18T20:59:54: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-18T20:59:54: ⚠️  Please configure these in server/.env file
+2025-09-18T20:59:54: ⚠️  The server will start but some features may not work properly
+
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+Error: The OPENAI_API_KEY environment variable is missing or empty; either provide it, or instantiate the OpenAI client with an apiKey option, like new OpenAI({ apiKey: 'My API Key' }).
+    at new OpenAI (file:///home/user/webapp/server/node_modules/openai/index.mjs:48:19)
+    at new AzureOpenAIConnector (file:///home/user/webapp/server/src/connectors/azureOpenAI.js:16:19)
+    at new BaseAgent (file:///home/user/webapp/server/src/agents/BaseAgent.js:8:28)
+    at new PurchaseAgent (file:///home/user/webapp/server/src/agents/PurchaseAgent.js:5:5)
+    at new AgentOrchestrator (file:///home/user/webapp/server/src/services/AgentOrchestrator.js:9:26)
+    at file:///home/user/webapp/server/src/routes/chat.js:7:22
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async file:///home/user/webapp/server/src/index.js:34:21
+2025-09-18T21:01:05: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-18T21:01:05: ⚠️  Please configure these in server/.env file
+2025-09-18T21:01:05: ⚠️  The server will start but some features may not work properly
+
+2025-09-18T21:01:06: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:01:06: ⚠️  Chat responses will be simulated
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+Error: key must be a non-empty string
+    at new AzureKeyCredential (/home/user/webapp/server/node_modules/@azure/core-auth/dist/commonjs/azureKeyCredential.js:26:19)
+    at new AzureSearchConnector (file:///home/user/webapp/server/src/connectors/azureSearch.js:10:23)
+    at new BaseAgent (file:///home/user/webapp/server/src/agents/BaseAgent.js:9:28)
+    at new PurchaseAgent (file:///home/user/webapp/server/src/agents/PurchaseAgent.js:5:5)
+    at new AgentOrchestrator (file:///home/user/webapp/server/src/services/AgentOrchestrator.js:9:26)
+    at file:///home/user/webapp/server/src/routes/chat.js:7:22
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async file:///home/user/webapp/server/src/index.js:34:21
+2025-09-18T21:14:29: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-18T21:14:29: ⚠️  Please configure these in server/.env file
+2025-09-18T21:14:29: ⚠️  The server will start but some features may not work properly
+
+2025-09-18T21:14:30: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:14:30: ⚠️  Chat responses will be simulated
+2025-09-18T21:14:30: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:14:30: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:14:30: ⚠️  Chat responses will be simulated
+2025-09-18T21:14:30: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:14:30: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:14:30: ⚠️  Chat responses will be simulated
+2025-09-18T21:14:30: ⚠️  Azure Search not configured - using mock mode
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+    at getClientParamsFromConnectionString (file:///home/user/webapp/server/node_modules/@azure/data-tables/dist/esm/utils/connectionString.js:16:26)
+    at TableServiceClient.fromConnectionString (file:///home/user/webapp/server/node_modules/@azure/data-tables/dist/esm/TableServiceClient.js:201:62)
+    at new AzureStorageConnector (file:///home/user/webapp/server/src/connectors/azureStorage.js:13:50)
+    at new AgentOrchestrator (file:///home/user/webapp/server/src/services/AgentOrchestrator.js:12:29)
+    at file:///home/user/webapp/server/src/routes/chat.js:7:22
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async file:///home/user/webapp/server/src/index.js:34:21
+2025-09-18T21:16:42: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-18T21:16:42: ⚠️  Please configure these in server/.env file
+2025-09-18T21:16:42: ⚠️  The server will start but some features may not work properly
+
+2025-09-18T21:16:43: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:16:43: ⚠️  Chat responses will be simulated
+2025-09-18T21:16:43: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:16:43: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:16:43: ⚠️  Chat responses will be simulated
+2025-09-18T21:16:43: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:16:43: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:16:43: ⚠️  Chat responses will be simulated
+2025-09-18T21:16:43: ⚠️  Azure Search not configured - using mock mode
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+TypeError: Cannot read properties of undefined (reading 'toLowerCase')
+    at getClientParamsFromConnectionString (file:///home/user/webapp/server/node_modules/@azure/data-tables/dist/esm/utils/connectionString.js:16:26)
+    at TableServiceClient.fromConnectionString (file:///home/user/webapp/server/node_modules/@azure/data-tables/dist/esm/TableServiceClient.js:201:62)
+    at new AzureStorageConnector (file:///home/user/webapp/server/src/connectors/azureStorage.js:13:50)
+    at new AgentOrchestrator (file:///home/user/webapp/server/src/services/AgentOrchestrator.js:12:29)
+    at file:///home/user/webapp/server/src/routes/chat.js:7:22
+    at ModuleJob.run (node:internal/modules/esm/module_job:263:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:540:24)
+    at async file:///home/user/webapp/server/src/index.js:34:21
+2025-09-18T21:40:04: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-18T21:40:04: ⚠️  Please configure these in server/.env file
+2025-09-18T21:40:04: ⚠️  The server will start but some features may not work properly
+
+2025-09-18T21:40:06: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:40:06: ⚠️  Chat responses will be simulated
+2025-09-18T21:40:06: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:40:06: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:40:06: ⚠️  Chat responses will be simulated
+2025-09-18T21:40:06: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:40:06: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-18T21:40:06: ⚠️  Chat responses will be simulated
+2025-09-18T21:40:06: ⚠️  Azure Search not configured - using mock mode
+2025-09-18T21:40:06: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:39:31: ⚠️  Please configure these in server/.env file
+2025-09-19T09:39:31: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:40:38: ⚠️  Please configure these in server/.env file
+2025-09-19T09:40:38: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:44:53: ⚠️  Please configure these in server/.env file
+2025-09-19T09:44:53: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Azure Storage not configured - using mock mode

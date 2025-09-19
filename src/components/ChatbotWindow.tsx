@@ -1,0 +1,1005 @@
+'use client';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Send, Loader2, MessageCircle, ShoppingCart, Package, User, ChevronLeft, ChevronRight, Info, Tag, Calendar, CreditCard, CheckCircle, Wrench } from 'lucide-react';
+import productsData from '../data/products.json';
+import detailedProductsData from '../data/detailedProducts.json';
+
+interface Message {
+  agent: string;
+  role: string;
+  content: string;
+  timestamp: string;
+  quickResponses?: string[];
+}
+
+interface DetailedProductInfo {
+  id: string;
+  이름: string;
+  설명: string;
+  구매가격정보: number;
+  구독가격_3년: number | null;
+  구독가격_4년: number | null;
+  구독가격_5년: number | null;
+  구독가격_6년: number | null;
+  구독장점: string[];
+  케어서비스빈도: string;
+  케어서비스유형: string[];
+  케어서비스설명: string;
+  케어서비스가격정보: string;
+  image?: string;
+}
+
+interface ChatbotWindowProps {
+  productId?: string;
+  isOpen: boolean;
+  onClose: () => void;
+  fullScreen?: boolean;
+}
+
+const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClose, fullScreen = false }) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [conversationState, setConversationState] = useState('welcome');
+  const [showProductInfo, setShowProductInfo] = useState(true);
+  const [detailedProduct, setDetailedProduct] = useState<DetailedProductInfo | null>(null);
+  const [clickedButtons, setClickedButtons] = useState<Map<number, Set<string>>>(new Map());
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  // 한글 IME 조합 여부만 추적 (이중 상태 제거: compositionValue 삭제)
+  // 입력은 별도 ChatInput 컴포넌트에서 비제어로 관리 (IME 안정성)
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+  // Initialize chat session when window opens
+  useEffect(() => {
+    if (isOpen && !sessionId) {
+      initializeChat();
+    }
+  }, [isOpen]);
+
+  // Load product information when productId is provided
+  useEffect(() => {
+    if (productId) {
+      // Find detailed product from the data
+      const detailedProduct = detailedProductsData.products.find(p => p.id === productId);
+      if (detailedProduct) {
+        setDetailedProduct(detailedProduct as DetailedProductInfo);
+      } else {
+        // Fallback to basic products data if not found in detailed
+        const basicProduct = productsData.bestProducts.find(p => p.id === productId);
+        if (basicProduct) {
+          // Create a detailed product object from basic data
+          setDetailedProduct({
+            id: basicProduct.id,
+            이름: basicProduct.name,
+            설명: basicProduct.name,
+            구매가격정보: basicProduct.discountPrice,
+            구독가격_3년: null,
+            구독가격_4년: null,
+            구독가격_5년: null,
+            구독가격_6년: basicProduct.monthlyPrice || null,
+            구독장점: [],
+            케어서비스빈도: "",
+            케어서비스유형: [],
+            케어서비스설명: "",
+            케어서비스가격정보: "",
+            image: basicProduct.image
+          });
+        }
+      }
+    }
+  }, [productId]);
+
+  // Auto scroll to bottom when new messages arrive - always stay at bottom
+  useEffect(() => {
+    if (messagesContainerRef.current && messages.length > 0) {
+      const container = messagesContainerRef.current;
+      // 항상 맨 아래로 스크롤 (부드럽지 않게 즉시)
+      container.scrollTop = container.scrollHeight;
+    }
+  }, [messages]);
+
+  // Focus management for input field
+  useEffect(() => {
+    if (!isLoading && conversationState !== 'conclusion' && conversationState !== 'welcome' && inputRef.current) {
+      const timer = setTimeout(() => {
+        if (inputRef.current && document.activeElement !== inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [conversationState, isLoading]);
+
+  const initializeChat = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_URL}/api/chat/init`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId,
+          userData: {
+            timestamp: new Date().toISOString()
+          }
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setSessionId(data.sessionId);
+        setMessages([data.message]);
+        setConversationState(data.state);
+      }
+    } catch (error) {
+      console.error('Failed to initialize chat:', error);
+      setMessages([{
+        agent: '시스템',
+        role: 'system',
+        content: '채팅을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.',
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // No delay needed - server handles timing with streaming
+
+  const sendMessage = async (message: string, messageType: string = 'text') => {
+    if (!sessionId || (!message && messageType === 'text')) return;
+
+    // Clear input if it's a text message
+    // (비제어 입력이라 여기서 별도 clear 불필요)
+
+    // Add user message to chat if it's text
+    if (messageType === 'text' && message) {
+      const userMessage: Message = {
+        agent: '사용자',
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, userMessage]);
+    }
+
+    setIsLoading(true);
+    setIsTyping(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/chat/message/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          message,
+          messageType
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim() && line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr) {
+                  const data = JSON.parse(jsonStr);
+                  
+                  if (data.type === 'message') {
+                    setMessages(prev => [...prev, data.data]);
+                  } else if (data.type === 'end') {
+                    setConversationState(data.state || conversationState);
+                  } else if (data.type === 'error') {
+                    console.error('Stream error:', data.message);
+                    setMessages(prev => [...prev, {
+                      agent: '시스템',
+                      role: 'system',
+                      content: `오류: ${data.message}`,
+                      timestamp: new Date().toISOString()
+                    }]);
+                  }
+                }
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Line:', line);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setMessages(prev => [...prev, {
+        agent: '시스템',
+        role: 'system',
+        content: '메시지 전송에 실패했습니다. 다시 시도해주세요.',
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsLoading(false);
+      setIsTyping(false);
+    }
+  };
+
+  const handleQuickResponse = async (response: string, messageIndex: number) => {
+    // 해당 메시지의 모든 버튼을 클릭된 것으로 표시 (모든 버튼이 사라지도록)
+    setClickedButtons(prev => {
+      const newMap = new Map(prev);
+      // 해당 메시지의 모든 버튼을 클릭된 것으로 처리
+      newMap.set(messageIndex, new Set(['all_buttons_clicked']));
+      return newMap;
+    });
+    
+    // 먼저 사용자 메시지를 추가
+    const userMessage: Message = {
+      agent: '사용자',
+      role: 'user',
+      content: response,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // 입력 필드 비우기
+  // 비제어 입력이라 상태 초기화 불필요
+    
+    // 로딩 상태 설정
+    setIsLoading(true);
+    setIsTyping(true);
+
+    try {
+      const messageType = response === '시작하자' ? 'start' : 
+                         response === '이제 결론을 내줘' ? 'conclusion' : 'quick_response';
+      
+      const response_data = await fetch(`${API_URL}/api/chat/message/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          message: response,
+          messageType
+        }),
+      });
+
+      if (!response_data.ok) {
+        throw new Error(`HTTP error! status: ${response_data.status}`);
+      }
+
+      const reader = response_data.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim() && line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr) {
+                  const data = JSON.parse(jsonStr);
+                  
+                  if (data.type === 'message') {
+                    setMessages(prev => [...prev, data.data]);
+                  } else if (data.type === 'end') {
+                    setConversationState(data.state || conversationState);
+                  } else if (data.type === 'error') {
+                    console.error('Stream error:', data.message);
+                    setMessages(prev => [...prev, {
+                      agent: '시스템',
+                      role: 'system',
+                      content: `오류: ${data.message}`,
+                      timestamp: new Date().toISOString()
+                    }]);
+                  }
+                }
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Line:', line);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send quick response:', error);
+      setMessages(prev => [...prev, {
+        agent: '시스템',
+        role: 'system',
+        content: '메시지 전송에 실패했습니다. 다시 시도해주세요.',
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsLoading(false);
+      setIsTyping(false);
+    }
+  };
+
+  const getAgentIcon = (agent: string) => {
+    switch (agent) {
+      case '구매봇':
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/purchase-bot.jpeg" alt="구매봇" className="w-full h-full object-cover" />
+          </div>
+        );
+      case '구독봇':
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/subscription-bot.png" alt="구독봇" className="w-full h-full object-cover" />
+          </div>
+        );
+      case '안내봇':
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/guide-bot.jpeg" alt="안내봇" className="w-full h-full object-cover" />
+          </div>
+        );
+      case '사용자':
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/user.png" alt="사용자" className="w-full h-full object-cover" />
+          </div>
+        );
+      default:
+        return <MessageCircle className="w-5 h-5" />;
+    }
+  };
+
+  const getAgentColor = (agent: string) => {
+    switch (agent) {
+      case '구매봇':
+        return 'bg-blue-500';
+      case '구독봇':
+        return 'bg-green-500';
+      case '안내봇':
+        return 'bg-purple-500';
+      case '사용자':
+        return 'bg-gray-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const Wrapper: React.FC<{children: React.ReactNode}> = ({ children }) => {
+    if (fullScreen) {
+      return (
+        <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen">
+          {children}
+        </div>
+      );
+    }
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col">
+          {children}
+        </div>
+      </div>
+    );
+  };
+
+  // 비제어 ChatInput: 부모 re-render 영향 최소화로 한글 조합 분리 방지
+  const ChatInput: React.FC<{disabled:boolean; onSend:(v:string)=>void; conversationState:string; isLoading:boolean;}> = React.memo(({disabled,onSend,conversationState,isLoading}) => {
+    const localRef = useRef<HTMLInputElement>(null);
+    const isComposingRef = useRef(false);
+    const [canSend, setCanSend] = useState(false); // 버튼 활성화용 최소 업데이트
+
+    const handleSend = () => {
+      if (!localRef.current) return;
+      const value = localRef.current.value.trim();
+      if (!value) return;
+      onSend(value);
+      // 전송 후 즉시 input 비우기 (조합 아님)
+      localRef.current.value = '';
+      setCanSend(false);
+    };
+
+    return (
+      <div className="flex gap-2 items-center">
+        <input
+          ref={localRef}
+          type="text"
+          onChange={(e) => {
+            // 조합 중이어도 value 자체는 브라우저가 관리 (비제어)
+            setCanSend(e.currentTarget.value.trim().length > 0);
+          }}
+          onCompositionStart={() => { isComposingRef.current = true; }}
+          onCompositionEnd={(e) => { isComposingRef.current = false; setCanSend(e.currentTarget.value.trim().length > 0); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !isComposingRef.current && !isLoading && conversationState !== 'conclusion') {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : (conversationState === 'welcome' ? '아래 "시작하자" 버튼을 눌러주세요' : '메시지를 입력하세요...')}
+          disabled={disabled}
+          className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-full text-sm outline-none focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+          autoComplete="off"
+          autoFocus={conversationState !== 'welcome' && conversationState !== 'conclusion'}
+        />
+        <button
+          onClick={handleSend}
+          disabled={isLoading || !canSend || conversationState === 'conclusion'}
+          className="px-6 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-0.5 whitespace-nowrap overflow-hidden text-ellipsis min-w-[80px] flex items-center justify-center"
+        >
+          {isLoading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            <div className="flex items-center">
+              <Send className="w-5 h-5" />
+              <span className="hidden sm:inline ml-2">전송</span>
+            </div>
+          )}
+        </button>
+      </div>
+    );
+  });
+
+  return (
+    <Wrapper>
+      {/* Header */}
+      <div className={`bg-gradient-to-r from-red-600 to-red-700 text-white p-4 ${fullScreen ? '' : 'rounded-t-lg'} flex items-center justify-between`}>
+        <div className="flex items-center space-x-3">
+          <div className="flex space-x-2">
+            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-75"></div>
+            <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse delay-150"></div>
+          </div>
+          <h2 className="text-xl font-bold">LG 가전 구독 할래말래?</h2>
+        </div>
+        <div className="flex items-center space-x-2">
+          {detailedProduct && (
+            <button
+              onClick={() => setShowProductInfo(!showProductInfo)}
+              className="p-2 hover:bg-red-800 rounded-full transition-colors"
+              title={showProductInfo ? '제품 정보 숨기기' : '제품 정보 보기'}
+            >
+              {showProductInfo ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-red-800 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Area with Sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Messages Container */}
+        <div 
+          ref={messagesContainerRef}
+          className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}
+          style={{ scrollBehavior: 'auto' }}
+        >
+        {messages.map((message, index) => (
+          <div
+            key={`${message.timestamp || Date.now()}-${index}`}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div className={`flex items-start space-x-3 ${
+              message.agent === '안내봇' && (message.content.includes('최종 결론') || message.content.includes('[최종 결론]'))
+                ? 'max-w-[90%]' 
+                : 'max-w-[70%]'
+            } ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+              <div className="flex-shrink-0">
+                {getAgentIcon(message.agent)}
+              </div>
+              <div>
+                <div className={`text-sm font-semibold mb-1 ${message.role === 'user' ? 'text-right' : ''}`}>
+                  {message.agent}
+                </div>
+                <div className={`p-3 rounded-lg ${
+                  message.role === 'user' 
+                    ? 'bg-blue-500 text-white' 
+                    : message.agent === '구매봇'
+                      ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                      : message.agent === '구독봇'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-white border border-gray-200'
+                }`}>
+                  {message.agent === '안내봇' && (message.content.includes('최종 결론') || message.content.includes('[최종 결론]')) ? (
+                    <div className="conclusion-message">
+                      <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-3 mb-2">
+                        <div className="flex items-center mb-2">
+                          <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-2">
+                            <CheckCircle className="w-4 h-4 text-white" />
+                          </div>
+                          <h3 className="text-base font-bold text-red-800">최종 결론</h3>
+                        </div>
+                        
+                        {/* 추천 결과 */}
+                        <div className="bg-white rounded-lg p-3 mb-3 border border-red-100">
+                          <div className="flex items-center mb-1">
+                            <Tag className="w-3 h-3 text-red-600 mr-1" />
+                            <span className="text-sm font-semibold text-red-700">추천 결과</span>
+                          </div>
+                          <div className="text-sm text-red-800 font-medium">
+                            {(() => {
+                              const conclusionMatch = message.content.match(/\[최종 결론\]:\s*([^[]+)/);
+                              const recommendation = conclusionMatch ? conclusionMatch[1].trim() : '';
+                              
+                              if (recommendation.includes('구매')) {
+                                return (
+                                  <div className="flex items-center">
+                                    <ShoppingCart className="w-4 h-4 mr-1 text-blue-600" />
+                                    <span>구매를 추천합니다</span>
+                                  </div>
+                                );
+                              } else if (recommendation.includes('구독')) {
+                                return (
+                                  <div className="flex items-center">
+                                    <CreditCard className="w-4 h-4 mr-1 text-green-600" />
+                                    <span>구독을 추천합니다</span>
+                                  </div>
+                                );
+                              } else {
+                                return <span>{recommendation || '결론을 분석 중...'}</span>;
+                              }
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* 적합도 */}
+                        {(() => {
+                          const suitabilityMatch = message.content.match(/\[적합도\]:\s*([^[]+)/);
+                          if (suitabilityMatch) {
+                            const suitability = suitabilityMatch[1].trim();
+                            return (
+                              <div className="bg-white rounded-lg p-3 mb-3 border border-red-100">
+                                <div className="flex items-center mb-1">
+                                  <Info className="w-3 h-3 text-blue-600 mr-1" />
+                                  <span className="text-sm font-semibold text-blue-700">적합도 분석</span>
+                                </div>
+                                <div className="text-sm text-blue-800 font-medium">
+                                  {suitability}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* 핵심 근거 */}
+                        {(() => {
+                          const reasonsMatch = message.content.match(/\[핵심 근거 3줄\]:\s*([^[]+)/);
+                          if (reasonsMatch) {
+                            const reasonsText = reasonsMatch[1].trim();
+                            // "- "로 시작하는 항목들을 분리
+                            const reasons = reasonsText.split(/\s*-\s+/).filter(r => r.trim()).map(r => r.trim());
+                            
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex items-center mb-1">
+                                  <Info className="w-3 h-3 text-blue-600 mr-1" />
+                                  <span className="text-sm font-semibold text-gray-700">핵심 근거</span>
+                                </div>
+                                
+                                {reasons.map((reason, idx) => (
+                                  <div key={idx} className="flex items-start bg-white rounded-lg p-2 border border-gray-100">
+                                    <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                                      <span className="text-red-600 font-bold text-xs">{idx + 1}</span>
+                                    </div>
+                                    <p className="text-gray-700 text-sm leading-relaxed">{reason}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* 다음 단계 제안 및 액션 버튼 */}
+                        {(() => {
+                          const nextStepMatch = message.content.match(/\[다음 단계 제안 1줄\]:\s*([^[]+)/);
+                          const conclusionMatch = message.content.match(/\[최종 결론\]:\s*([^[]+)/);
+                          const recommendation = conclusionMatch ? conclusionMatch[1].trim() : '';
+                          
+                          if (nextStepMatch) {
+                            const nextStep = nextStepMatch[1].trim();
+                            return (
+                              <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center">
+                                    <Calendar className="w-3 h-3 text-yellow-600 mr-1" />
+                                    <span className="text-sm font-semibold text-yellow-800">다음 단계</span>
+                                  </div>
+                                  
+                                  {/* 액션 버튼들 - 제목 옆으로 이동 */}
+                                  <div className="flex gap-2">
+                                  {recommendation.includes('구매') && (
+                                    <button
+                                      onClick={() => {
+                                        // 구매 페이지로 이동하거나 구매 프로세스 시작
+                                        alert('아싸 구매 고객 하나 잡았긴해!');
+                                      }}
+                                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1"
+                                    >
+                                      <ShoppingCart className="w-3 h-3" />
+                                      구매하러 가기
+                                    </button>
+                                  )}
+                                  {recommendation.includes('구독') && (
+                                    <button
+                                      onClick={() => {
+                                        // 구독 페이지로 이동하거나 구독 프로세스 시작
+                                        alert('아싸! 구독 고객 하나 추가했긴해!');
+                                      }}
+                                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-1"
+                                    >
+                                      <CreditCard className="w-3 h-3" />
+                                      구독하러 가기
+                                    </button>
+                                  )}
+                                  {!recommendation.includes('구매') && !recommendation.includes('구독') && (
+                                    <button
+                                      onClick={() => {
+                                        // 상품 상세 페이지로 이동
+                                        if (detailedProduct) {
+                                          window.open(`/product/${detailedProduct.id}`, '_blank');
+                                        }
+                                      }}
+                                      className="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors flex items-center gap-1"
+                                    >
+                                      <Package className="w-3 h-3" />
+                                      상품 자세히 보기
+                                    </button>
+                                  )}
+                                  </div>
+                                </div>
+                                <p className="text-yellow-700 text-xs">
+                                  {nextStep}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
+                </div>
+                
+                {/* Quick Responses */}
+                {message.quickResponses && message.quickResponses.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {message.quickResponses.map((response, idx) => {
+                      // 해당 메시지의 버튼이 클릭되었으면 모든 버튼 숨김
+                      const messageClickedButtons = clickedButtons.get(index) || new Set();
+                      if (messageClickedButtons.has('all_buttons_clicked')) {
+                        return null;
+                      }
+                      
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleQuickResponse(response, index)}
+                          disabled={isLoading}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            response === '이제 결론을 내줘'
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {response}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Typing Indicator */}
+        {isTyping && (
+          <div className="flex items-center space-x-2 text-gray-500">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            <span className="text-sm">입력 중...</span>
+          </div>
+        )}
+
+      </div>
+
+      {/* Product Info Sidebar */}
+      {showProductInfo && detailedProduct && (
+        <div className="w-96 bg-white border-l border-gray-200 overflow-y-auto">
+          <div className="p-4">
+            {/* Product Image */}
+            {detailedProduct.image && (
+              <div className="mb-4">
+                <img 
+                  src={detailedProduct.image} 
+                  alt={detailedProduct.이름}
+                  className="w-full h-48 object-contain rounded-lg bg-gray-100"
+                />
+              </div>
+            )}
+
+            {/* Product Title */}
+            <h3 className="text-lg font-bold mb-2">{detailedProduct.이름}</h3>
+            <p className="text-sm text-gray-600 mb-4">{detailedProduct.설명}</p>
+
+            {/* Purchase vs Subscription Price Cards */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* Purchase Card */}
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="flex items-center mb-2">
+                  <ShoppingCart className="w-4 h-4 mr-1 text-blue-600" />
+                  <span className="text-sm font-semibold text-blue-900">일시불 구매</span>
+                </div>
+                <p className="text-xl font-bold text-blue-700">
+                  {detailedProduct.구매가격정보.toLocaleString()}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">원</p>
+              </div>
+
+              {/* Subscription Card */}
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <div className="flex items-center mb-2">
+                  <CreditCard className="w-4 h-4 mr-1 text-green-600" />
+                  <span className="text-sm font-semibold text-green-900">월 구독</span>
+                </div>
+                <div className="text-xs space-y-1">
+                  {detailedProduct.구독가격_3년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">3년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_3년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                  {detailedProduct.구독가격_4년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">4년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_4년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                  {detailedProduct.구독가격_5년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">5년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_5년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                  {detailedProduct.구독가격_6년 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">6년</span>
+                      <span className="font-semibold text-green-800">{detailedProduct.구독가격_6년.toLocaleString()}원</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Subscription Benefits */}
+            {detailedProduct.구독장점 && detailedProduct.구독장점.length > 0 && (
+              <div className="mb-4 bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <CheckCircle className="w-4 h-4 mr-1 text-green-600" />
+                  <span className="text-sm font-semibold">구독 혜택</span>
+                </div>
+                <ul className="space-y-2">
+                  {detailedProduct.구독장점.map((benefit, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <span className="text-green-500 mr-2 mt-0.5">•</span>
+                      <span className="text-xs text-gray-700 leading-relaxed">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Care Service Info */}
+            {detailedProduct.케어서비스설명 && detailedProduct.케어서비스설명 !== "" && (
+              <div className="mb-4 bg-purple-50 p-3 rounded-lg">
+                <div className="flex items-center mb-2">
+                  <Wrench className="w-4 h-4 mr-1 text-purple-600" />
+                  <span className="text-sm font-semibold text-purple-900">케어 서비스</span>
+                </div>
+                <p className="text-xs text-purple-700 mb-2">{detailedProduct.케어서비스설명}</p>
+                
+                {detailedProduct.케어서비스빈도 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-800">방문 주기:</span>
+                    <span className="text-xs text-purple-600 ml-1">{detailedProduct.케어서비스빈도}</span>
+                  </div>
+                )}
+                
+                {detailedProduct.케어서비스유형 && detailedProduct.케어서비스유형.length > 0 && (
+                  <div className="mb-2">
+                    <span className="text-xs font-semibold text-purple-800">서비스 유형:</span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {detailedProduct.케어서비스유형.map((type, idx) => (
+                        <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">
+                          {type}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {detailedProduct.케어서비스가격정보 && detailedProduct.케어서비스가격정보 !== "없음" && (
+                  <div className="pt-2 border-t border-purple-200">
+                    <span className="text-xs font-semibold text-purple-800">가격 정보:</span>
+                    <p className="text-xs text-purple-600 mt-1">{detailedProduct.케어서비스가격정보}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Total Cost Comparison */}
+            <div className="p-3 bg-gray-100 rounded-lg">
+              <h4 className="text-sm font-semibold mb-3 text-gray-800">총 비용 비교 (6년 기준)</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">일시불 구매</span>
+                  <span className="text-sm font-bold text-gray-800">
+                    {detailedProduct.구매가격정보.toLocaleString()}원
+                  </span>
+                </div>
+                {detailedProduct.구독가격_6년 && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-gray-600">6년 구독 기본 총액</span>
+                      <span className="text-sm text-gray-700">
+                        {(detailedProduct.구독가격_6년 * 72).toLocaleString()}원
+                      </span>
+                    </div>
+                    
+                    {/* Calculate subscription with benefits */}
+                    {(() => {
+                      const basicTotal = detailedProduct.구독가격_6년 * 72;
+                      let finalTotal = basicTotal;
+                      let appliedBenefits: string[] = [];
+                      
+                      // Parse benefits to calculate actual final cost
+                      detailedProduct.구독장점.forEach(benefit => {
+                        // Check for card discount
+                        if (benefit.includes('제휴카드 할인')) {
+                          const match = benefit.match(/월\s*([\d,]+)원/);
+                          if (match) {
+                            const monthlyDiscount = parseInt(match[1].replace(/,/g, ''));
+                            finalTotal -= monthlyDiscount * 72;
+                            appliedBenefits.push(`카드할인: -${(monthlyDiscount * 72).toLocaleString()}원`);
+                          }
+                        }
+                        
+                        // Check for prepayment discount
+                        if (benefit.includes('선 결제') && benefit.includes('추가 할인')) {
+                          const match = benefit.match(/월\s*([\d,]+)원\s*추가\s*할인/);
+                          if (match) {
+                            const monthlyDiscount = parseInt(match[1].replace(/,/g, ''));
+                            finalTotal -= monthlyDiscount * 72;
+                            appliedBenefits.push(`선결제 할인: -${(monthlyDiscount * 72).toLocaleString()}원`);
+                          }
+                        }
+                        
+                        // Check for membership points
+                        if (benefit.includes('멤버십 포인트')) {
+                          const match = benefit.match(/([\d,]+)P/);
+                          if (match) {
+                            const points = parseInt(match[1].replace(/,/g, ''));
+                            finalTotal -= points;
+                            appliedBenefits.push(`포인트: -${points.toLocaleString()}원`);
+                          }
+                        }
+                        
+                        // Check for first year discount
+                        if (benefit.includes('첫 12개월') && benefit.includes('반값') && detailedProduct.구독가격_6년) {
+                          const halfYearDiscount = detailedProduct.구독가격_6년 * 6;
+                          finalTotal -= halfYearDiscount;
+                          appliedBenefits.push(`첫년 반값: -${halfYearDiscount.toLocaleString()}원`);
+                        }
+                        
+                        // Check if total cost is mentioned in benefit
+                        if (benefit.includes('총 비용')) {
+                          const match = benefit.match(/총\s*비용\s*([\d,]+)원/);
+                          if (match) {
+                            finalTotal = parseInt(match[1].replace(/,/g, ''));
+                          }
+                        }
+                      });
+                      
+                      return (
+                        <>
+                          {appliedBenefits.length > 0 && (
+                            <div className="pl-3 space-y-1 text-xs text-gray-500 italic">
+                              {appliedBenefits.map((benefit, idx) => (
+                                <div key={idx}>{benefit}</div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="flex justify-between items-center bg-green-100 p-2 rounded">
+                            <span className="text-xs font-semibold text-green-800">혜택 적용 최종가</span>
+                            <span className="text-sm font-bold text-green-700">
+                              {finalTotal.toLocaleString()}원
+                            </span>
+                          </div>
+                          
+                          <div className="pt-2 mt-2 border-t border-gray-300">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-semibold text-gray-700">구매 대비 차액</span>
+                              <span className={`text-sm font-bold ${
+                                finalTotal > detailedProduct.구매가격정보 
+                                  ? 'text-red-600' 
+                                  : 'text-green-600'
+                              }`}>
+                                {Math.abs(finalTotal - detailedProduct.구매가격정보).toLocaleString()}원
+                                {finalTotal > detailedProduct.구매가격정보 
+                                  ? ' 더 비쌈' 
+                                  : ' 절약'}
+                              </span>
+                            </div>
+                            {finalTotal <= detailedProduct.구매가격정보 && (
+                              <div className="mt-2 p-2 bg-green-50 rounded">
+                                <p className="text-xs text-green-700 font-medium text-center">
+                                  ✨ 최대 할인 적용 시 구독이 더 경제적입니다!
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+
+      {/* Input Area */}
+      <div className={`border-t bg-white p-0 ${fullScreen ? '' : 'rounded-b-lg'}`}>
+        <ChatInput
+          disabled={isLoading || conversationState === 'conclusion'}
+          conversationState={conversationState}
+            isLoading={isLoading}
+          onSend={(text) => sendMessage(text, 'text')}
+        />
+      </div>
+    </Wrapper>
+  );
+};
+
+export default ChatbotWindow;
