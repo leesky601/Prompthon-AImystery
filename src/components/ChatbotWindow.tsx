@@ -63,6 +63,45 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       behavior: smooth ? 'smooth' : 'auto'
     });
   }, []);
+  
+  // Initialize chat function - must be defined before useEffect that uses it
+  const initializeChat = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_URL}/api/chat/init`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId,
+          userData: {
+            timestamp: new Date().toISOString()
+          }
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setSessionId(data.sessionId);
+        setMessages([data.message]);
+        setConversationState(data.state);
+        // Ensure scroll to bottom for initial message
+        setTimeout(() => scrollToBottom(false), 100);
+      }
+    } catch (error) {
+      console.error('Failed to initialize chat:', error);
+      setMessages([{
+        agent: '시스템',
+        role: 'system',
+        content: '채팅을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.',
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [API_URL, productId, scrollToBottom]);
 
   // Initialize chat session when window opens
   useEffect(() => {
@@ -156,46 +195,6 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       clearTimeout(scrollTimeout);
     };
   }, []);
-  
-  // Remove auto-focus to prevent input issues
-
-  const initializeChat = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`${API_URL}/api/chat/init`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productId,
-          userData: {
-            timestamp: new Date().toISOString()
-          }
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setSessionId(data.sessionId);
-        setMessages([data.message]);
-        setConversationState(data.state);
-        // Ensure scroll to bottom for initial message
-        setTimeout(() => scrollToBottom(false), 100);
-      }
-    } catch (error) {
-      console.error('Failed to initialize chat:', error);
-      setMessages([{
-        agent: '시스템',
-        role: 'system',
-        content: '채팅을 시작할 수 없습니다. 잠시 후 다시 시도해주세요.',
-        timestamp: new Date().toISOString()
-      }]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [API_URL, productId, scrollToBottom]);
 
   const delayForAgent = (agent?: string) => {
     switch (agent) {
@@ -210,6 +209,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   };
 
+  // Send message function
   const sendMessage = useCallback(async (message: string, messageType: string = 'text') => {
     if (!sessionId || (!message && messageType === 'text')) return;
 
