@@ -47,8 +47,22 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const [showProductInfo, setShowProductInfo] = useState(true);
   const [detailedProduct, setDetailedProduct] = useState<DetailedProductInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isUserScrolling = useRef(false);
+  const lastScrollTop = useRef(0);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  
+  // Scroll to bottom helper function
+  const scrollToBottom = useCallback((smooth: boolean = true) => {
+    if (!messagesContainerRef.current) return;
+    
+    const container = messagesContainerRef.current;
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: smooth ? 'smooth' : 'auto'
+    });
+  }, []);
 
   // Initialize chat session when window opens
   useEffect(() => {
@@ -90,10 +104,58 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   }, [productId]);
 
-  // Auto scroll to bottom when new messages arrive
+  // Smart scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!messagesContainerRef.current) return;
+    
+    const container = messagesContainerRef.current;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const isNearBottom = distanceFromBottom < 150;
+    
+    // Only scroll if:
+    // 1. User is already near bottom (following conversation)
+    // 2. It's the first message
+    // 3. User is not manually scrolling up
+    if (isNearBottom || messages.length === 1 || (!isUserScrolling.current && distanceFromBottom < 300)) {
+      // Use RAF to ensure DOM is painted before scrolling
+      requestAnimationFrame(() => {
+        scrollToBottom();
+      });
+    }
+  }, [messages, scrollToBottom]);
+  
+  // Track user scrolling with debouncing
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    
+    let scrollTimeout: NodeJS.Timeout;
+    
+    const handleScroll = () => {
+      clearTimeout(scrollTimeout);
+      
+      const currentScrollTop = container.scrollTop;
+      const isScrollingUp = currentScrollTop < lastScrollTop.current;
+      const isNearBottom = container.scrollHeight - currentScrollTop - container.clientHeight < 150;
+      
+      // User is manually scrolling if they scroll up or are not at bottom
+      isUserScrolling.current = isScrollingUp && !isNearBottom;
+      lastScrollTop.current = currentScrollTop;
+      
+      // Reset user scrolling flag after they stop scrolling
+      scrollTimeout = setTimeout(() => {
+        if (isNearBottom) {
+          isUserScrolling.current = false;
+        }
+      }, 500);
+    };
+    
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
   
   // Remove auto-focus to prevent input issues
 
@@ -119,6 +181,8 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
         setSessionId(data.sessionId);
         setMessages([data.message]);
         setConversationState(data.state);
+        // Ensure scroll to bottom for initial message
+        setTimeout(() => scrollToBottom(false), 100);
       }
     } catch (error) {
       console.error('Failed to initialize chat:', error);
@@ -131,7 +195,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [scrollToBottom]);
 
   const delayForAgent = (agent?: string) => {
     switch (agent) {
@@ -205,7 +269,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       setIsLoading(false);
       setIsTyping(false);
     }
-  }, [sessionId, conversationState]);
+  }, [sessionId, conversationState, scrollToBottom]);
 
   const handleQuickResponse = useCallback((response: string) => {
     if (response === '시작하자') {
@@ -298,7 +362,10 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       {/* Main Content Area with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Messages Container */}
-        <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}>
+        <div 
+          ref={messagesContainerRef}
+          className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}
+        >
         {messages.map((message, index) => (
           <div
             key={`${message.timestamp}-${index}`}
@@ -352,7 +419,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
           </div>
         )}
 
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-1" />
       </div>
 
       {/* Product Info Sidebar */}
