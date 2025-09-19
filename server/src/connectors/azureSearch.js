@@ -180,8 +180,12 @@ class AzureSearchConnector {
         const productsPath = path.join(__dirname, '../../../src/data/detailedProducts.json');
         const productsData = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
         
-        // Find product by ID
-        const product = productsData.products.find(p => p.id === productId);
+        // Debug logging
+        console.log(`[AzureSearchConnector] Looking for productId: ${productId} (type: ${typeof productId})`);
+        console.log(`[AzureSearchConnector] Available product IDs:`, productsData.products.map(p => `${p.id} (type: ${typeof p.id})`));
+        
+        // Find product by ID - ensure type matching
+        const product = productsData.products.find(p => String(p.id) === String(productId));
         
         if (product) {
           // Transform to expected format

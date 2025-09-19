@@ -11,6 +11,9 @@ router.post('/init', async (req, res) => {
   try {
     const { productId, userData } = req.body;
     
+    // Debug log to check received productId
+    logger.info(`Chat init received - productId: ${productId}, type: ${typeof productId}`);
+    
     const result = await orchestrator.initializeSession(productId, userData);
     
     if (!result.success) {
