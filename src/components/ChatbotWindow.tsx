@@ -48,6 +48,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const [detailedProduct, setDetailedProduct] = useState<DetailedProductInfo | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputValueRef = useRef<string>('');  // Track input value in ref to prevent loss
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -95,6 +96,22 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  
+  // Maintain focus on input field when typing state changes
+  useEffect(() => {
+    if (!isLoading && conversationState !== 'welcome' && conversationState !== 'conclusion') {
+      // Restore focus to input if it was lost
+      if (document.activeElement !== inputRef.current && inputRef.current) {
+        const currentValue = inputValueRef.current;
+        inputRef.current.focus();
+        // Restore cursor position to end
+        if (currentValue) {
+          inputRef.current.value = '';
+          inputRef.current.value = currentValue;
+        }
+      }
+    }
+  }, [isTyping, isLoading, conversationState]);
 
   const initializeChat = async () => {
     try {
@@ -151,6 +168,14 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     // Clear input if it's a text message
     if (messageType === 'text') {
       setInputValue('');
+      inputValueRef.current = '';  // Clear ref as well
+      
+      // Keep focus on input after sending
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 0);
     }
 
     // Add user message to chat if it's text
@@ -612,11 +637,21 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
             ref={inputRef}
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && !isLoading && conversationState !== 'welcome' && sendMessage()}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setInputValue(newValue);
+              inputValueRef.current = newValue;  // Store in ref as well
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && !isLoading && conversationState !== 'welcome' && inputValue.trim()) {
+                sendMessage();
+              }
+            }}
             placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : (conversationState === 'welcome' ? '아래 "시작하자" 버튼을 눌러주세요' : '메시지를 입력하세요...')}
             disabled={isLoading || conversationState === 'conclusion' || conversationState === 'welcome'}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            autoComplete="off"
+            autoFocus={false}
           />
           <button
             onClick={() => sendMessage()}

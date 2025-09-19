@@ -122,7 +122,8 @@ class ModeratorAgent extends BaseAgent {
       // Generate quick response options
       const quickResponses = await this.generateQuickResponses(
         response.content,
-        suggestedTopics[0] || '사용 패턴'
+        suggestedTopics[0] || '',
+        exploredTopics
       );
 
       return this.formatResponse(response.content, {
@@ -236,46 +237,74 @@ ${subscriptionPoints || '구독의 일반적 장점: 낮은 초기비용, 케어
   analyzeExploredTopics(conversationHistory) {
     const explored = new Set();
     const keywords = {
-      '초기비용': ['초기', '비용', '부담', '일시불'],
-      '케어서비스': ['케어', '서비스', 'AS', '관리'],
-      '교체주기': ['교체', '최신', '신제품', '업그레이드'],
-      '사용패턴': ['사용', '패턴', '라이프', '생활'],
-      '경제성': ['경제', '절약', '비교', '총비용']
+      '초기비용': ['초기', '비용', '부담', '일시불', '할부', '현금', '월 납부'],
+      '케어서비스': ['케어', '서비스', 'AS', '관리', '점검', '고장', '보증'],
+      '교체주기': ['교체', '최신', '신제품', '업그레이드', '중고', '성능'],
+      '사용패턴': ['사용', '패턴', '라이프', '생활', '이사', '가구', '주말', '매일'],
+      '경제성': ['경제', '절약', '비교', '총비용', '전기료', '감가상각', '투자'],
+      '소유권': ['소유', '내 것', '자산', '짐', '커스터마이징'],
+      '최신기술': ['최신 기능', 'AI 기능', '스마트 기능', '기존 모델'],
+      '환경변화': ['이사', '해외', '전세', '자가']
     };
 
+    // Analyze all messages including quick responses that were clicked
     conversationHistory.forEach(msg => {
       const content = msg.content.toLowerCase();
+      
+      // Check each topic's keywords
       Object.entries(keywords).forEach(([topic, words]) => {
         if (words.some(word => content.includes(word))) {
           explored.add(topic);
         }
       });
+      
+      // Also check for exact topic matches in questions from ModeratorAgent
+      if (msg.agent === '안내봇') {
+        // Check if the message contains questions about specific topics
+        if (content.includes('초기') && content.includes('비용')) explored.add('초기비용');
+        if (content.includes('케어') || content.includes('서비스')) explored.add('케어서비스');
+        if (content.includes('교체') || content.includes('최신')) explored.add('교체주기');
+        if (content.includes('사용') && content.includes('패턴')) explored.add('사용패턴');
+        if (content.includes('경제') || content.includes('비용')) explored.add('경제성');
+        if (content.includes('소유')) explored.add('소유권');
+        if (content.includes('기술') || content.includes('기능')) explored.add('최신기술');
+        if (content.includes('이사') || content.includes('환경')) explored.add('환경변화');
+      }
     });
 
     return explored;
   }
 
   getSuggestedTopics(exploredTopics) {
-    const allTopics = [
-      '초기 비용 부담',
-      '케어 서비스 필요성',
-      '제품 교체 주기',
-      '사용 패턴과 라이프스타일',
-      '장기 경제성',
-      '소유권의 가치',
-      '최신 기술 선호도',
-      '이사나 환경 변화 가능성'
-    ];
+    const topicMapping = {
+      '초기 비용 부담': '초기비용',
+      '케어 서비스 필요성': '케어서비스',
+      '제품 교체 주기': '교체주기',
+      '사용 패턴과 라이프스타일': '사용패턴',
+      '장기 경제성': '경제성',
+      '소유권의 가치': '소유권',
+      '최신 기술 선호도': '최신기술',
+      '이사나 환경 변화 가능성': '환경변화'
+    };
 
-    return allTopics.filter(topic => 
-      !Array.from(exploredTopics).some(explored => 
-        topic.toLowerCase().includes(explored)
-      )
-    ).slice(0, 3);
+    const allTopics = Object.keys(topicMapping);
+    
+    // Filter out topics that have already been explored
+    const unexploredTopics = allTopics.filter(topic => {
+      const topicKey = topicMapping[topic];
+      return !exploredTopics.has(topicKey);
+    });
+
+    // If all topics are explored, return empty array to avoid repetition
+    if (unexploredTopics.length === 0) {
+      return [];
+    }
+
+    return unexploredTopics.slice(0, 3);
   }
 
-  async generateQuickResponses(question, suggestedTopic) {
-    // 대화 턴에 따라 다양한 응답 세트를 제공
+  async generateQuickResponses(question, suggestedTopic, exploredTopics) {
+    // Track which responses have been used to avoid repetition
     const topicResponseSets = {
       '초기 비용 부담': [
         ['초기 비용이 부담스러워요', '일시불로 구매할 여유가 있어요'],
@@ -319,12 +348,43 @@ ${subscriptionPoints || '구독의 일반적 장점: 낮은 초기비용, 케어
       ]
     };
 
+    // If no suggested topic (all explored), provide concluding responses
+    if (!suggestedTopic) {
+      return ['구독이 더 나을 것 같아요', '구매가 더 합리적인 것 같아요'];
+    }
+
     // 대화 턴 수에 따라 다른 응답 세트 선택
     const conversationTurn = Math.floor(Math.random() * 3); // 0, 1, 2 중 랜덤
     const responseSet = topicResponseSets[suggestedTopic];
     
     if (responseSet && responseSet[conversationTurn]) {
-      return responseSet[conversationTurn];
+      // Filter out responses that match already explored topics
+      const filteredResponses = responseSet[conversationTurn].filter(response => {
+        const responseLower = response.toLowerCase();
+        // Check if this response relates to an already explored topic
+        const isExplored = Array.from(exploredTopics).some(topic => {
+          const topicKeywords = {
+            '초기비용': ['초기', '비용', '일시불', '할부', '현금'],
+            '케어서비스': ['케어', '서비스', 'AS', '점검', '고장'],
+            '교체주기': ['교체', '최신', '신제품', '중고'],
+            '사용패턴': ['이사', '가구', '주말', '매일'],
+            '경제성': ['비용', '절약', '전기료'],
+            '소유권': ['소유', '자산', '커스터마이징'],
+            '최신기술': ['AI', '스마트', '기능'],
+            '환경변화': ['이사', '해외', '전세', '자가']
+          };
+          
+          const keywords = topicKeywords[topic] || [];
+          return keywords.some(keyword => responseLower.includes(keyword));
+        });
+        
+        return !isExplored;
+      });
+      
+      // If we have filtered responses, use them; otherwise provide generic ones
+      if (filteredResponses.length >= 2) {
+        return filteredResponses.slice(0, 2);
+      }
     }
     
     // 기본 응답들도 다양화
