@@ -186,6 +186,16 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Always force scroll to bottom whenever messages change
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const timer = setTimeout(() => {
+      container.scrollTop = container.scrollHeight;
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [messages]);
+
   const delayForAgent = (agent?: string) => {
     switch (agent) {
       case '구매봇':
