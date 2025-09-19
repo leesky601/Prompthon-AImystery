@@ -508,7 +508,11 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
             key={`${message.timestamp || Date.now()}-${index}`}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`flex items-start space-x-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+            <div className={`flex items-start space-x-3 ${
+              message.agent === '안내봇' && (message.content.includes('최종 결론') || message.content.includes('[최종 결론]'))
+                ? 'max-w-[90%]' 
+                : 'max-w-[70%]'
+            } ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
               <div className="flex-shrink-0">
                 {getAgentIcon(message.agent)}
               </div>
@@ -527,21 +531,21 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                 }`}>
                   {message.agent === '안내봇' && (message.content.includes('최종 결론') || message.content.includes('[최종 결론]')) ? (
                     <div className="conclusion-message">
-                      <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4 mb-3">
-                        <div className="flex items-center mb-3">
-                          <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mr-3">
-                            <CheckCircle className="w-5 h-5 text-white" />
+                      <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-3 mb-2">
+                        <div className="flex items-center mb-2">
+                          <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center mr-2">
+                            <CheckCircle className="w-4 h-4 text-white" />
                           </div>
-                          <h3 className="text-lg font-bold text-red-800">최종 결론</h3>
+                          <h3 className="text-base font-bold text-red-800">최종 결론</h3>
                         </div>
                         
                         {/* 추천 결과 */}
-                        <div className="bg-white rounded-lg p-4 mb-4 border border-red-100">
-                          <div className="flex items-center mb-2">
-                            <Tag className="w-4 h-4 text-red-600 mr-2" />
-                            <span className="font-semibold text-red-700">추천 결과</span>
+                        <div className="bg-white rounded-lg p-3 mb-3 border border-red-100">
+                          <div className="flex items-center mb-1">
+                            <Tag className="w-3 h-3 text-red-600 mr-1" />
+                            <span className="text-sm font-semibold text-red-700">추천 결과</span>
                           </div>
-                          <div className="text-red-800 font-medium">
+                          <div className="text-sm text-red-800 font-medium">
                             {(() => {
                               const conclusionMatch = message.content.match(/\[최종 결론\]:\s*([^[]+)/);
                               const recommendation = conclusionMatch ? conclusionMatch[1].trim() : '';
@@ -549,14 +553,14 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                               if (recommendation.includes('구매')) {
                                 return (
                                   <div className="flex items-center">
-                                    <ShoppingCart className="w-5 h-5 mr-2 text-blue-600" />
+                                    <ShoppingCart className="w-4 h-4 mr-1 text-blue-600" />
                                     <span>구매를 추천합니다</span>
                                   </div>
                                 );
                               } else if (recommendation.includes('구독')) {
                                 return (
                                   <div className="flex items-center">
-                                    <CreditCard className="w-5 h-5 mr-2 text-green-600" />
+                                    <CreditCard className="w-4 h-4 mr-1 text-green-600" />
                                     <span>구독을 추천합니다</span>
                                   </div>
                                 );
@@ -573,12 +577,12 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                           if (suitabilityMatch) {
                             const suitability = suitabilityMatch[1].trim();
                             return (
-                              <div className="bg-white rounded-lg p-4 mb-4 border border-red-100">
-                                <div className="flex items-center mb-2">
-                                  <Info className="w-4 h-4 text-blue-600 mr-2" />
-                                  <span className="font-semibold text-blue-700">적합도 분석</span>
+                              <div className="bg-white rounded-lg p-3 mb-3 border border-red-100">
+                                <div className="flex items-center mb-1">
+                                  <Info className="w-3 h-3 text-blue-600 mr-1" />
+                                  <span className="text-sm font-semibold text-blue-700">적합도 분석</span>
                                 </div>
-                                <div className="text-blue-800 font-medium">
+                                <div className="text-sm text-blue-800 font-medium">
                                   {suitability}
                                 </div>
                               </div>
@@ -596,16 +600,16 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                             const reasons = reasonsText.split(/\s*-\s+/).filter(r => r.trim()).map(r => r.trim());
                             
                             return (
-                              <div className="space-y-3">
-                                <div className="flex items-center mb-2">
-                                  <Info className="w-4 h-4 text-blue-600 mr-2" />
-                                  <span className="font-semibold text-gray-700">핵심 근거</span>
+                              <div className="space-y-2">
+                                <div className="flex items-center mb-1">
+                                  <Info className="w-3 h-3 text-blue-600 mr-1" />
+                                  <span className="text-sm font-semibold text-gray-700">핵심 근거</span>
                                 </div>
                                 
                                 {reasons.map((reason, idx) => (
-                                  <div key={idx} className="flex items-start bg-white rounded-lg p-3 border border-gray-100">
-                                    <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                                      <span className="text-red-600 font-bold text-sm">{idx + 1}</span>
+                                  <div key={idx} className="flex items-start bg-white rounded-lg p-2 border border-gray-100">
+                                    <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center mr-2 mt-0.5 flex-shrink-0">
+                                      <span className="text-red-600 font-bold text-xs">{idx + 1}</span>
                                     </div>
                                     <p className="text-gray-700 text-sm leading-relaxed">{reason}</p>
                                   </div>
@@ -616,18 +620,65 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                           return null;
                         })()}
 
-                        {/* 다음 단계 제안 */}
+                        {/* 다음 단계 제안 및 액션 버튼 */}
                         {(() => {
                           const nextStepMatch = message.content.match(/\[다음 단계 제안 1줄\]:\s*([^[]+)/);
+                          const conclusionMatch = message.content.match(/\[최종 결론\]:\s*([^[]+)/);
+                          const recommendation = conclusionMatch ? conclusionMatch[1].trim() : '';
+                          
                           if (nextStepMatch) {
                             const nextStep = nextStepMatch[1].trim();
                             return (
-                              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                <div className="flex items-center mb-2">
-                                  <Calendar className="w-4 h-4 text-yellow-600 mr-2" />
-                                  <span className="font-semibold text-yellow-800">다음 단계</span>
+                              <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center">
+                                    <Calendar className="w-3 h-3 text-yellow-600 mr-1" />
+                                    <span className="text-sm font-semibold text-yellow-800">다음 단계</span>
+                                  </div>
+                                  
+                                  {/* 액션 버튼들 - 제목 옆으로 이동 */}
+                                  <div className="flex gap-2">
+                                  {recommendation.includes('구매') && (
+                                    <button
+                                      onClick={() => {
+                                        // 구매 페이지로 이동하거나 구매 프로세스 시작
+                                        alert('아싸 구매 고객 하나 잡았긴해!');
+                                      }}
+                                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1"
+                                    >
+                                      <ShoppingCart className="w-3 h-3" />
+                                      구매하러 가기
+                                    </button>
+                                  )}
+                                  {recommendation.includes('구독') && (
+                                    <button
+                                      onClick={() => {
+                                        // 구독 페이지로 이동하거나 구독 프로세스 시작
+                                        alert('아싸! 구독 고객 하나 추가했긴해!');
+                                      }}
+                                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors flex items-center gap-1"
+                                    >
+                                      <CreditCard className="w-3 h-3" />
+                                      구독하러 가기
+                                    </button>
+                                  )}
+                                  {!recommendation.includes('구매') && !recommendation.includes('구독') && (
+                                    <button
+                                      onClick={() => {
+                                        // 상품 상세 페이지로 이동
+                                        if (detailedProduct) {
+                                          window.open(`/product/${detailedProduct.id}`, '_blank');
+                                        }
+                                      }}
+                                      className="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-semibold hover:bg-gray-700 transition-colors flex items-center gap-1"
+                                    >
+                                      <Package className="w-3 h-3" />
+                                      상품 자세히 보기
+                                    </button>
+                                  )}
+                                  </div>
                                 </div>
-                                <p className="text-yellow-700 text-sm">
+                                <p className="text-yellow-700 text-xs">
                                   {nextStep}
                                 </p>
                               </div>
@@ -944,17 +995,6 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
             isLoading={isLoading}
           onSend={(text) => sendMessage(text, 'text')}
         />
-        {conversationState === 'welcome' && !clickedButtons.get(-1)?.has('all_buttons_clicked') && (
-          <div className="mt-3 flex justify-center">
-            <button
-              onClick={() => handleQuickResponse('시작하자', -1)}
-              disabled={isLoading}
-              className="px-8 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:opacity-50"
-            >
-              시작하자
-            </button>
-          </div>
-        )}
       </div>
     </Wrapper>
   );
