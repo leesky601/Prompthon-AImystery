@@ -69,7 +69,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     if (isOpen && !sessionId) {
       initializeChat();
     }
-  }, [isOpen]);
+  }, [isOpen, sessionId, initializeChat]);
 
   // Load product information when productId is provided
   useEffect(() => {
@@ -159,7 +159,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   
   // Remove auto-focus to prevent input issues
 
-  const initializeChat = async () => {
+  const initializeChat = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await fetch(`${API_URL}/api/chat/init`, {
@@ -195,7 +195,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     } finally {
       setIsLoading(false);
     }
-  }, [scrollToBottom]);
+  }, [API_URL, productId, scrollToBottom]);
 
   const delayForAgent = (agent?: string) => {
     switch (agent) {
@@ -269,7 +269,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       setIsLoading(false);
       setIsTyping(false);
     }
-  }, [sessionId, conversationState, scrollToBottom]);
+  }, [sessionId, conversationState]);
 
   const handleQuickResponse = useCallback((response: string) => {
     if (response === '시작하자') {
