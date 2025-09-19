@@ -126,3 +126,101 @@ TypeError: Cannot read properties of undefined (reading 'toLowerCase')
     
     ⚠️  Warning: Some environment variables are missing. Check server/.env file.
   
+2025-09-19T09:39:31: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:39:31: ⚠️  Please configure these in server/.env file
+2025-09-19T09:39:31: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:39:31: [INFO] 2025-09-19T00:39:31.461Z - Server is running on port 4000
+2025-09-19T09:39:31: 
+    🚀 LG Chatbot API Server is running!
+    📍 Local: http://localhost:4000
+    📍 Network: http://0.0.0.0:4000
+    📍 Environment: development
+    📍 Platform: darwin
+    📍 Node Version: v24.8.0
+    
+    ⚠️  Warning: Some environment variables are missing. Check server/.env file.
+  
+2025-09-19T09:40:38: [INFO] 2025-09-19T00:40:38.105Z - Received shutdown signal, closing server gracefully...
+2025-09-19T09:40:38: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:40:38: ⚠️  Please configure these in server/.env file
+2025-09-19T09:40:38: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:40:38: [INFO] 2025-09-19T00:40:38.530Z - Server is running on port 4000
+2025-09-19T09:40:38: 
+    🚀 LG Chatbot API Server is running!
+    📍 Local: http://localhost:4000
+    📍 Network: http://0.0.0.0:4000
+    📍 Environment: development
+    📍 Platform: darwin
+    📍 Node Version: v24.8.0
+    
+    ⚠️  Warning: Some environment variables are missing. Check server/.env file.
+  
+2025-09-19T09:41:18: [INFO] 2025-09-19T00:41:18.688Z - POST /api/chat/init {
+  ip: '127.0.0.1',
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15'
+}
+2025-09-19T09:41:21: [INFO] 2025-09-19T00:41:21.691Z - POST /api/chat/message {
+  ip: '127.0.0.1',
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15'
+}
+2025-09-19T09:43:09: [INFO] 2025-09-19T00:43:09.104Z - POST /api/chat/init {
+  ip: '127.0.0.1',
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15'
+}
+2025-09-19T09:44:38: [INFO] 2025-09-19T00:44:38.948Z - POST /api/chat/init {
+  ip: '127.0.0.1',
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15'
+}
+2025-09-19T09:44:42: [INFO] 2025-09-19T00:44:42.111Z - POST /api/chat/message {
+  ip: '127.0.0.1',
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15'
+}
+2025-09-19T09:44:52: [INFO] 2025-09-19T00:44:52.823Z - Received shutdown signal, closing server gracefully...
+2025-09-19T09:44:53: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:44:53: ⚠️  Please configure these in server/.env file
+2025-09-19T09:44:53: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:44:53: [INFO] 2025-09-19T00:44:53.350Z - Server is running on port 4000
+2025-09-19T09:44:53: 
+    🚀 LG Chatbot API Server is running!
+    📍 Local: http://localhost:4000
+    📍 Network: http://0.0.0.0:4000
+    📍 Environment: development
+    📍 Platform: darwin
+    📍 Node Version: v24.8.0
+    
+    ⚠️  Warning: Some environment variables are missing. Check server/.env file.
+  
+2025-09-19T09:46:47: [INFO] 2025-09-19T00:46:47.374Z - Received shutdown signal, closing server gracefully...

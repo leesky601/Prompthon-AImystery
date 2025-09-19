@@ -181,4 +181,21 @@
   .animate-blink-right {
     animation: blink-right 3s ease-in-out infinite;
   }
+
+  /* Message fade-in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }

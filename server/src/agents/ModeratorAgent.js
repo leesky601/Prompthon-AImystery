@@ -40,7 +40,7 @@ class ModeratorAgent extends BaseAgent {
     
     if (!response.success) {
       return this.formatResponse(
-        '안녕하세요! 구매할지 구독할지 고민이시군요. 제가 도와드리겠긴해. 토론을 시작할래말래?',
+        '안녕하긴해! 구매할지 구독할지 애매하긴해. 제가 도와줄 수 있긴해. 토론을 시작할래말래?',
         { type: 'welcome', quickResponses: ['시작하자'] }
       );
     }
@@ -177,9 +177,14 @@ class ModeratorAgent extends BaseAgent {
       // Get product info if available
       let productInfo = null;
       if (productId) {
-        const productResult = await this.searchConnector.getProductById(productId);
-        if (productResult.success && productResult.document) {
-          productInfo = productResult.document;
+        try {
+          const productResult = await this.searchConnector.getProductById(productId);
+          if (productResult.success && productResult.document) {
+            productInfo = productResult.document;
+          }
+        } catch (searchError) {
+          console.error('Product search error:', searchError);
+          // Continue without product info
         }
       }
       
@@ -269,7 +274,7 @@ ${subscriptionPoints || '구독의 일반적 장점: 낮은 초기비용, 케어
     } catch (error) {
       console.error('ModeratorAgent Conclusion Error:', error);
       return this.formatResponse(
-        '[최종 결론]: 구독\n[적합도]: 구매 40%, 구독 60%\n[핵심 근거 3줄]:\n- 초기 비용 부담을 피하고 싶다는 신호\n- 최신 기능 및 케어 서비스 선호\n- 거주/라이프스타일 변화 가능성을 시사\n[다음 단계 제안 1줄]: 구독 옵션을 선택하고 상담원 연결을 진행하자긴해',
+        '[최종 결론]: 구독\n[적합도]: 구매 40%, 구독 60%\n[핵심 근거 3줄]:\n- 초기 비용 부담을 피하고 싶다는 신호\n- 최신 기능 및 케어 서비스 선호\n- 거주/라이프스타일 변화 가능성을 시사\n[다음 단계 제안 1줄]: 구독 옵션을 선택하고 상담원 연결을 진행하긴해',
         {
           type: 'conclusion',
           conversationEnded: true

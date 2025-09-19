@@ -115,3 +115,45 @@ TypeError: Cannot read properties of undefined (reading 'toLowerCase')
 2025-09-18T21:40:06: ⚠️  Chat responses will be simulated
 2025-09-18T21:40:06: ⚠️  Azure Search not configured - using mock mode
 2025-09-18T21:40:06: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:39:31: ⚠️  Please configure these in server/.env file
+2025-09-19T09:39:31: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:39:31: ⚠️  Chat responses will be simulated
+2025-09-19T09:39:31: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:39:31: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:40:38: ⚠️  Please configure these in server/.env file
+2025-09-19T09:40:38: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:40:38: ⚠️  Chat responses will be simulated
+2025-09-19T09:40:38: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:40:38: ⚠️  Azure Storage not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Warning: Missing environment variables: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_SEARCH_API_KEY, AZURE_SEARCH_ENDPOINT, AZURE_STORAGE_CONNECTION_STRING
+2025-09-19T09:44:53: ⚠️  Please configure these in server/.env file
+2025-09-19T09:44:53: ⚠️  The server will start but some features may not work properly
+
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Running in MOCK MODE - No OpenAI API key configured
+2025-09-19T09:44:53: ⚠️  Chat responses will be simulated
+2025-09-19T09:44:53: ⚠️  Azure Search not configured - using mock mode
+2025-09-19T09:44:53: ⚠️  Azure Storage not configured - using mock mode

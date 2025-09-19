@@ -4,7 +4,7 @@ import Joi from 'joi';
 const chatMessageSchema = Joi.object({
   sessionId: Joi.string().uuid().required(),
   message: Joi.string().max(1000).optional(),
-  messageType: Joi.string().valid('text', 'start', 'quick_response').default('text')
+  messageType: Joi.string().valid('text', 'start', 'quick_response', 'conclusion').default('text')
 });
 
 const initSessionSchema = Joi.object({

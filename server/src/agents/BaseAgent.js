@@ -12,6 +12,10 @@ class BaseAgent {
   // Natural summarizer: keep only complete sentences up to maxLen
   summarizeNaturally(raw, maxLen = 240) {
     if (!raw) return '';
+    // 강제로 "긴해" 말투를 바꾸는 부분 주석처리 - 원본 텍스트 그대로 반환
+    return String(raw).replace(/\s+/g, ' ').trim();
+    
+    /* 주석처리된 원래 코드 - 강제로 "긴해" 말투로 바꾸는 부분
     let text = String(raw).replace(/\s+/g, ' ').trim();
     if (text.length <= maxLen) return text;
 
@@ -55,6 +59,7 @@ class BaseAgent {
     const lastSpace = cut.lastIndexOf(' ');
     const safe = lastSpace > 0 ? cut.slice(0, lastSpace) : text.slice(0, maxLen);
     return safe.trim();
+    */
   }
 
   // Format response with agent metadata (with natural summarization)

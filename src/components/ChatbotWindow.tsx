@@ -46,9 +46,9 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const [conversationState, setConversationState] = useState('welcome');
   const [showProductInfo, setShowProductInfo] = useState(true);
   const [detailedProduct, setDetailedProduct] = useState<DetailedProductInfo | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [clickedButtons, setClickedButtons] = useState<Map<number, Set<string>>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
-  const inputValueRef = useRef<string>('');  // Track input value in ref to prevent loss
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -92,26 +92,26 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   }, [productId]);
 
-  // Auto scroll to bottom when new messages arrive
+  // Auto scroll to bottom when new messages arrive - always stay at bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-  
-  // Maintain focus on input field when typing state changes
-  useEffect(() => {
-    if (!isLoading && conversationState !== 'welcome' && conversationState !== 'conclusion') {
-      // Restore focus to input if it was lost
-      if (document.activeElement !== inputRef.current && inputRef.current) {
-        const currentValue = inputValueRef.current;
-        inputRef.current.focus();
-        // Restore cursor position to end
-        if (currentValue) {
-          inputRef.current.value = '';
-          inputRef.current.value = currentValue;
-        }
-      }
+    if (messagesContainerRef.current && messages.length > 0) {
+      const container = messagesContainerRef.current;
+      // 항상 맨 아래로 스크롤 (부드럽지 않게 즉시)
+      container.scrollTop = container.scrollHeight;
     }
-  }, [isTyping, isLoading, conversationState]);
+  }, [messages]);
+
+  // Focus management for input field
+  useEffect(() => {
+    if (!isLoading && conversationState !== 'conclusion' && conversationState !== 'welcome' && inputRef.current) {
+      const timer = setTimeout(() => {
+        if (inputRef.current && document.activeElement !== inputRef.current) {
+          inputRef.current.focus();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [conversationState, isLoading]);
 
   const initializeChat = async () => {
     try {
@@ -149,18 +149,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   };
 
-  const delayForAgent = (agent?: string) => {
-    switch (agent) {
-      case '구매봇':
-        return 600;
-      case '구독봇':
-        return 900;
-      case '안내봇':
-        return 1200;
-      default:
-        return 700;
-    }
-  };
+  // No delay needed - server handles timing with streaming
 
   const sendMessage = async (message: string = inputValue, messageType: string = 'text') => {
     if (!sessionId || (!message && messageType === 'text')) return;
@@ -168,14 +157,6 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     // Clear input if it's a text message
     if (messageType === 'text') {
       setInputValue('');
-      inputValueRef.current = '';  // Clear ref as well
-      
-      // Keep focus on input after sending
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
-      }, 0);
     }
 
     // Add user message to chat if it's text
@@ -193,7 +174,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     setIsTyping(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/chat/message`, {
+      const response = await fetch(`${API_URL}/api/chat/message/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,20 +186,50 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
         }),
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        if (data.messages && Array.isArray(data.messages)) {
-          for (let i = 0; i < data.messages.length; i++) {
-            const msg = data.messages[i];
-            const delay = delayForAgent(msg.agent);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            setMessages(prev => [...prev, msg]);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim() && line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr) {
+                  const data = JSON.parse(jsonStr);
+                  
+                  if (data.type === 'message') {
+                    setMessages(prev => [...prev, data.data]);
+                  } else if (data.type === 'end') {
+                    setConversationState(data.state || conversationState);
+                  } else if (data.type === 'error') {
+                    console.error('Stream error:', data.message);
+                    setMessages(prev => [...prev, {
+                      agent: '시스템',
+                      role: 'system',
+                      content: `오류: ${data.message}`,
+                      timestamp: new Date().toISOString()
+                    }]);
+                  }
+                }
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Line:', line);
+              }
+            }
           }
-        } else if (data.message) {
-          setMessages(prev => [...prev, data.message]);
         }
-        setConversationState(data.state || conversationState);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -234,24 +245,132 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   };
 
-  const handleQuickResponse = (response: string) => {
-    if (response === '시작하자') {
-      sendMessage(response, 'start');
-    } else {
-      sendMessage(response, 'quick_response');
+  const handleQuickResponse = async (response: string, messageIndex: number) => {
+    // 해당 메시지의 모든 버튼을 클릭된 것으로 표시 (모든 버튼이 사라지도록)
+    setClickedButtons(prev => {
+      const newMap = new Map(prev);
+      // 해당 메시지의 모든 버튼을 클릭된 것으로 처리
+      newMap.set(messageIndex, new Set(['all_buttons_clicked']));
+      return newMap;
+    });
+    
+    // 먼저 사용자 메시지를 추가
+    const userMessage: Message = {
+      agent: '사용자',
+      role: 'user',
+      content: response,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // 입력 필드 비우기
+    setInputValue('');
+    
+    // 로딩 상태 설정
+    setIsLoading(true);
+    setIsTyping(true);
+
+    try {
+      const messageType = response === '시작하자' ? 'start' : 
+                         response === '이제 결론을 내줘' ? 'conclusion' : 'quick_response';
+      
+      const response_data = await fetch(`${API_URL}/api/chat/message/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          message: response,
+          messageType
+        }),
+      });
+
+      if (!response_data.ok) {
+        throw new Error(`HTTP error! status: ${response_data.status}`);
+      }
+
+      const reader = response_data.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.trim() && line.startsWith('data: ')) {
+              try {
+                const jsonStr = line.slice(6).trim();
+                if (jsonStr) {
+                  const data = JSON.parse(jsonStr);
+                  
+                  if (data.type === 'message') {
+                    setMessages(prev => [...prev, data.data]);
+                  } else if (data.type === 'end') {
+                    setConversationState(data.state || conversationState);
+                  } else if (data.type === 'error') {
+                    console.error('Stream error:', data.message);
+                    setMessages(prev => [...prev, {
+                      agent: '시스템',
+                      role: 'system',
+                      content: `오류: ${data.message}`,
+                      timestamp: new Date().toISOString()
+                    }]);
+                  }
+                }
+              } catch (e) {
+                console.error('JSON parse error:', e, 'Line:', line);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send quick response:', error);
+      setMessages(prev => [...prev, {
+        agent: '시스템',
+        role: 'system',
+        content: '메시지 전송에 실패했습니다. 다시 시도해주세요.',
+        timestamp: new Date().toISOString()
+      }]);
+    } finally {
+      setIsLoading(false);
+      setIsTyping(false);
     }
   };
 
   const getAgentIcon = (agent: string) => {
     switch (agent) {
       case '구매봇':
-        return <ShoppingCart className="w-5 h-5" />;
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/purchase-bot.jpeg" alt="구매봇" className="w-full h-full object-cover" />
+          </div>
+        );
       case '구독봇':
-        return <Package className="w-5 h-5" />;
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/subscription-bot.png" alt="구독봇" className="w-full h-full object-cover" />
+          </div>
+        );
       case '안내봇':
-        return <MessageCircle className="w-5 h-5" />;
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/guide-bot.jpeg" alt="안내봇" className="w-full h-full object-cover" />
+          </div>
+        );
       case '사용자':
-        return <User className="w-5 h-5" />;
+        return (
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+            <img src="/images/user.png" alt="사용자" className="w-full h-full object-cover" />
+          </div>
+        );
       default:
         return <MessageCircle className="w-5 h-5" />;
     }
@@ -325,14 +444,18 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       {/* Main Content Area with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Messages Container */}
-        <div className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}>
+        <div 
+          ref={messagesContainerRef}
+          className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}
+          style={{ scrollBehavior: 'auto' }}
+        >
         {messages.map((message, index) => (
           <div
-            key={index}
+            key={`${message.timestamp || Date.now()}-${index}`}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div className={`flex items-start space-x-3 max-w-[70%] ${message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-              <div className={`p-2 rounded-full ${getAgentColor(message.agent)} text-white`}>
+              <div className="flex-shrink-0">
                 {getAgentIcon(message.agent)}
               </div>
               <div>
@@ -342,28 +465,154 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                 <div className={`p-3 rounded-lg ${
                   message.role === 'user' 
                     ? 'bg-blue-500 text-white' 
-                    : 'bg-white border border-gray-200'
+                    : message.agent === '구매봇'
+                      ? 'bg-blue-50 border border-blue-200 text-blue-800'
+                      : message.agent === '구독봇'
+                        ? 'bg-green-50 border border-green-200 text-green-800'
+                        : 'bg-white border border-gray-200'
                 }`}>
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  {message.agent === '안내봇' && (message.content.includes('최종 결론') || message.content.includes('[최종 결론]')) ? (
+                    <div className="conclusion-message">
+                      <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4 mb-3">
+                        <div className="flex items-center mb-3">
+                          <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center mr-3">
+                            <CheckCircle className="w-5 h-5 text-white" />
+                          </div>
+                          <h3 className="text-lg font-bold text-red-800">최종 결론</h3>
+                        </div>
+                        
+                        {/* 추천 결과 */}
+                        <div className="bg-white rounded-lg p-4 mb-4 border border-red-100">
+                          <div className="flex items-center mb-2">
+                            <Tag className="w-4 h-4 text-red-600 mr-2" />
+                            <span className="font-semibold text-red-700">추천 결과</span>
+                          </div>
+                          <div className="text-red-800 font-medium">
+                            {(() => {
+                              const conclusionMatch = message.content.match(/\[최종 결론\]:\s*([^[]+)/);
+                              const recommendation = conclusionMatch ? conclusionMatch[1].trim() : '';
+                              
+                              if (recommendation.includes('구매')) {
+                                return (
+                                  <div className="flex items-center">
+                                    <ShoppingCart className="w-5 h-5 mr-2 text-blue-600" />
+                                    <span>구매를 추천합니다</span>
+                                  </div>
+                                );
+                              } else if (recommendation.includes('구독')) {
+                                return (
+                                  <div className="flex items-center">
+                                    <CreditCard className="w-5 h-5 mr-2 text-green-600" />
+                                    <span>구독을 추천합니다</span>
+                                  </div>
+                                );
+                              } else {
+                                return <span>{recommendation || '결론을 분석 중...'}</span>;
+                              }
+                            })()}
+                          </div>
+                        </div>
+
+                        {/* 적합도 */}
+                        {(() => {
+                          const suitabilityMatch = message.content.match(/\[적합도\]:\s*([^[]+)/);
+                          if (suitabilityMatch) {
+                            const suitability = suitabilityMatch[1].trim();
+                            return (
+                              <div className="bg-white rounded-lg p-4 mb-4 border border-red-100">
+                                <div className="flex items-center mb-2">
+                                  <Info className="w-4 h-4 text-blue-600 mr-2" />
+                                  <span className="font-semibold text-blue-700">적합도 분석</span>
+                                </div>
+                                <div className="text-blue-800 font-medium">
+                                  {suitability}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* 핵심 근거 */}
+                        {(() => {
+                          const reasonsMatch = message.content.match(/\[핵심 근거 3줄\]:\s*([^[]+)/);
+                          if (reasonsMatch) {
+                            const reasonsText = reasonsMatch[1].trim();
+                            // "- "로 시작하는 항목들을 분리
+                            const reasons = reasonsText.split(/\s*-\s+/).filter(r => r.trim()).map(r => r.trim());
+                            
+                            return (
+                              <div className="space-y-3">
+                                <div className="flex items-center mb-2">
+                                  <Info className="w-4 h-4 text-blue-600 mr-2" />
+                                  <span className="font-semibold text-gray-700">핵심 근거</span>
+                                </div>
+                                
+                                {reasons.map((reason, idx) => (
+                                  <div key={idx} className="flex items-start bg-white rounded-lg p-3 border border-gray-100">
+                                    <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                                      <span className="text-red-600 font-bold text-sm">{idx + 1}</span>
+                                    </div>
+                                    <p className="text-gray-700 text-sm leading-relaxed">{reason}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        {/* 다음 단계 제안 */}
+                        {(() => {
+                          const nextStepMatch = message.content.match(/\[다음 단계 제안 1줄\]:\s*([^[]+)/);
+                          if (nextStepMatch) {
+                            const nextStep = nextStepMatch[1].trim();
+                            return (
+                              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex items-center mb-2">
+                                  <Calendar className="w-4 h-4 text-yellow-600 mr-2" />
+                                  <span className="font-semibold text-yellow-800">다음 단계</span>
+                                </div>
+                                <p className="text-yellow-700 text-sm">
+                                  {nextStep}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  )}
                 </div>
                 
                 {/* Quick Responses */}
                 {message.quickResponses && message.quickResponses.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {message.quickResponses.map((response, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleQuickResponse(response)}
-                        disabled={isLoading}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                          response === '이제 결론을 내줘'
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {response}
-                      </button>
-                    ))}
+                    {message.quickResponses.map((response, idx) => {
+                      // 해당 메시지의 버튼이 클릭되었으면 모든 버튼 숨김
+                      const messageClickedButtons = clickedButtons.get(index) || new Set();
+                      if (messageClickedButtons.has('all_buttons_clicked')) {
+                        return null;
+                      }
+                      
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleQuickResponse(response, index)}
+                          disabled={isLoading}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                            response === '이제 결론을 내줘'
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {response}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -374,12 +623,15 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
         {/* Typing Indicator */}
         {isTyping && (
           <div className="flex items-center space-x-2 text-gray-500">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
             <span className="text-sm">입력 중...</span>
           </div>
         )}
 
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Product Info Sidebar */}
@@ -632,44 +884,41 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
 
       {/* Input Area */}
       <div className={`border-t bg-white p-4 ${fullScreen ? '' : 'rounded-b-lg'}`}>
-        <div className="flex space-x-2">
+        <div className="flex gap-2 items-center">
           <input
             ref={inputRef}
             type="text"
             value={inputValue}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setInputValue(newValue);
-              inputValueRef.current = newValue;  // Store in ref as well
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && !isLoading && conversationState !== 'welcome' && inputValue.trim()) {
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !isLoading && conversationState !== 'conclusion' && inputValue.trim()) {
+                e.preventDefault();
                 sendMessage();
               }
             }}
             placeholder={conversationState === 'conclusion' ? '대화가 종료되었습니다' : (conversationState === 'welcome' ? '아래 "시작하자" 버튼을 눌러주세요' : '메시지를 입력하세요...')}
-            disabled={isLoading || conversationState === 'conclusion' || conversationState === 'welcome'}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            disabled={isLoading || conversationState === 'conclusion'}
+            className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-full text-sm outline-none focus:border-red-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
             autoComplete="off"
-            autoFocus={false}
+            autoFocus={conversationState !== 'welcome' && conversationState !== 'conclusion'}
           />
           <button
             onClick={() => sendMessage()}
-            disabled={isLoading || !inputValue || conversationState === 'conclusion' || conversationState === 'welcome'}
-            className="px-6 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+            disabled={isLoading || !inputValue.trim() || conversationState === 'conclusion'}
+            className="px-6 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-0.5 whitespace-nowrap overflow-hidden text-ellipsis min-w-[60px]"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Send className="w-5 h-5" />
             )}
-            <span className="hidden sm:inline">전송</span>
+            <span className="hidden sm:inline ml-2">전송</span>
           </button>
         </div>
-        {conversationState === 'welcome' && (
+        {conversationState === 'welcome' && !clickedButtons.get(-1)?.has('all_buttons_clicked') && (
           <div className="mt-3 flex justify-center">
             <button
-              onClick={() => handleQuickResponse('시작하자')}
+              onClick={() => handleQuickResponse('시작하자', -1)}
               disabled={isLoading}
               className="px-8 py-3 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:opacity-50"
             >
