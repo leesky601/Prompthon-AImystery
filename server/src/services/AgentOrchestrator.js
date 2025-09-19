@@ -324,7 +324,7 @@ class AgentOrchestrator {
       })}\n\n`);
 
       // Wait 4 seconds before next bot
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise(resolve => setTimeout(resolve, 2500));
 
       // Generate subscription agent's initial argument
       const subscriptionArgument = await this.subscriptionAgent.generateInitialArgument(
@@ -338,7 +338,7 @@ class AgentOrchestrator {
       })}\n\n`);
 
       // Wait 4 seconds before moderator
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise(resolve => setTimeout(resolve, 2500));
 
       // Generate moderator's summary and question
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
@@ -384,7 +384,7 @@ class AgentOrchestrator {
       })}\n\n`);
 
       // Wait 4 seconds before subscription agent
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise(resolve => setTimeout(resolve, 2500));
 
       // Subscription agent provides counter-argument
       const subscriptionRebuttal = await this.subscriptionAgent.generateRebuttal(
@@ -399,7 +399,7 @@ class AgentOrchestrator {
       })}\n\n`);
 
       // Wait 4 seconds before moderator
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise(resolve => setTimeout(resolve, 2500));
 
       // Moderator summarizes and asks next question
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion(context);
