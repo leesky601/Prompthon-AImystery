@@ -51,6 +51,16 @@ class ModeratorAgent extends BaseAgent {
   async summarizeAndQuestion(context) {
     try {
       const conversationHistory = context.conversationHistory || [];
+      const productId = context.productId;
+      
+      // Get product info if available
+      let productInfo = null;
+      if (productId) {
+        const productResult = await this.searchConnector.getProductById(productId);
+        if (productResult.success && productResult.document) {
+          productInfo = productResult.document;
+        }
+      }
       
       // Build full conversation context
       let fullContext = '';
@@ -90,6 +100,16 @@ class ModeratorAgent extends BaseAgent {
       const exploredTopics = this.analyzeExploredTopics(conversationHistory);
       const suggestedTopics = this.getSuggestedTopics(exploredTopics);
 
+      // Add product context if available
+      if (productInfo) {
+        summaryContext += `\n\n[현재 논의 제품]\n`;
+        summaryContext += `- 제품명: ${productInfo.product_name}\n`;
+        summaryContext += `- 구매가격: ${productInfo.purchase_price}원\n`;
+        if (productInfo.subscription_price_6y) {
+          summaryContext += `- 6년 구독료: 월 ${productInfo.subscription_price_6y}원\n`;
+        }
+      }
+      
       const messages = [{
         role: 'user',
         content: `다음 대화 내용을 기반으로 응답하세요: ${summaryContext}
@@ -152,6 +172,16 @@ class ModeratorAgent extends BaseAgent {
   async generateConclusion(context) {
     try {
       const conversationHistory = context.conversationHistory || [];
+      const productId = context.productId;
+      
+      // Get product info if available
+      let productInfo = null;
+      if (productId) {
+        const productResult = await this.searchConnector.getProductById(productId);
+        if (productResult.success && productResult.document) {
+          productInfo = productResult.document;
+        }
+      }
       
       // 전체 대화 내용 구성
       let fullConversation = '\n[전체 대화 내용]\n';
@@ -178,10 +208,24 @@ class ModeratorAgent extends BaseAgent {
         .map(msg => msg.content)
         .join(' ');
 
+      // Add product price comparison if available
+      let priceComparison = '';
+      if (productInfo) {
+        priceComparison = `\n[제품 가격 비교]\n`;
+        priceComparison += `- 제품명: ${productInfo.product_name}\n`;
+        priceComparison += `- 구매가격: ${productInfo.purchase_price}원\n`;
+        if (productInfo.subscription_price_6y) {
+          const total6y = productInfo.subscription_price_6y * 72;
+          priceComparison += `- 6년 구독 총액: ${total6y}원 (월 ${productInfo.subscription_price_6y}원)\n`;
+          priceComparison += `- 차액: ${Math.abs(total6y - productInfo.purchase_price)}원 (구독이 ${total6y > productInfo.purchase_price ? '더 비싸짐' : '더 저렴함'})\n`;
+        }
+      }
+      
       const messages = [{
         role: 'user',
         content: `다음은 구매 vs 구독에 대한 전체 토론 내용입니다:
 ${fullConversation}
+${priceComparison}
 
 [사용자 응답 분석]
 ${userContextLines || '사용자가 구체적인 선호를 표현하지 않았음'}
