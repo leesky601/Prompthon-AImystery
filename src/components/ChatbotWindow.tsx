@@ -58,9 +58,9 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     if (!messagesContainerRef.current) return;
     
     const container = messagesContainerRef.current;
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior: smooth ? 'smooth' : 'auto'
+    // Don't scroll if already calculating
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
     });
   }, []);
   
@@ -88,7 +88,11 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
         setMessages([data.message]);
         setConversationState(data.state);
         // Ensure scroll to bottom for initial message
-        setTimeout(() => scrollToBottom(false), 100);
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+          }
+        }, 100);
       }
     } catch (error) {
       console.error('Failed to initialize chat:', error);
@@ -143,57 +147,50 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   }, [productId]);
 
-  // Smart scroll to bottom when new messages arrive
+  // Auto scroll when new messages arrive - only if user is at bottom
   useEffect(() => {
-    if (!messagesContainerRef.current) return;
+    if (!messagesContainerRef.current || messages.length === 0) return;
     
     const container = messagesContainerRef.current;
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    const isNearBottom = distanceFromBottom < 150;
     
-    // Only scroll if:
-    // 1. User is already near bottom (following conversation)
-    // 2. It's the first message
-    // 3. User is not manually scrolling up
-    if (isNearBottom || messages.length === 1 || (!isUserScrolling.current && distanceFromBottom < 300)) {
-      // Use RAF to ensure DOM is painted before scrolling
-      requestAnimationFrame(() => {
-        scrollToBottom();
-      });
+    // Calculate if we were at bottom BEFORE the new message
+    // This prevents the scroll jump
+    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    
+    // Only auto-scroll if user was already at bottom
+    if (wasAtBottom && !isUserScrolling.current) {
+      // Wait for DOM to update with new message
+      setTimeout(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }, 10);
     }
-  }, [messages, scrollToBottom]);
+  }, [messages]);
   
-  // Track user scrolling with debouncing
+  // Track user manual scrolling
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
     
-    let scrollTimeout: NodeJS.Timeout;
-    
     const handleScroll = () => {
-      clearTimeout(scrollTimeout);
-      
       const currentScrollTop = container.scrollTop;
-      const isScrollingUp = currentScrollTop < lastScrollTop.current;
-      const isNearBottom = container.scrollHeight - currentScrollTop - container.clientHeight < 150;
+      const atBottom = container.scrollHeight - currentScrollTop - container.clientHeight < 100;
       
-      // User is manually scrolling if they scroll up or are not at bottom
-      isUserScrolling.current = isScrollingUp && !isNearBottom;
+      // If user scrolled up manually, set flag
+      if (currentScrollTop < lastScrollTop.current && !atBottom) {
+        isUserScrolling.current = true;
+      }
+      // If user scrolled to bottom, clear flag
+      else if (atBottom) {
+        isUserScrolling.current = false;
+      }
+      
       lastScrollTop.current = currentScrollTop;
-      
-      // Reset user scrolling flag after they stop scrolling
-      scrollTimeout = setTimeout(() => {
-        if (isNearBottom) {
-          isUserScrolling.current = false;
-        }
-      }, 500);
     };
     
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
+    return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
   const delayForAgent = (agent?: string) => {
@@ -364,7 +361,8 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
         {/* Messages Container */}
         <div 
           ref={messagesContainerRef}
-          className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 ${showProductInfo && detailedProduct ? 'mr-0' : ''}`}
+          className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+          style={{ scrollBehavior: 'auto' }}
         >
         {messages.map((message, index) => (
           <div
@@ -419,7 +417,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
           </div>
         )}
 
-        <div ref={messagesEndRef} className="h-1" />
+        <div ref={messagesEndRef} style={{ height: '1px', minHeight: '1px' }} />
       </div>
 
       {/* Product Info Sidebar */}
