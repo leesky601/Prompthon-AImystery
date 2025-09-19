@@ -56,7 +56,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
   const scrollToBottom = useCallback(() => {
     if (!messagesContainerRef.current) return;
     const container = messagesContainerRef.current;
-    container.scrollTop = container.scrollHeight - container.clientHeight;
+    container.scrollTop = container.scrollHeight;
   }, []);
   
   // Initialize chat function - must be defined before useEffect that uses it
@@ -167,11 +167,7 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
       return () => clearTimeout(timer);
     } else {
       // Maintain scroll position if user was reading above
-      const scrollHeightDiff = container.scrollHeight - previousScrollHeight.current;
-      if (scrollHeightDiff > 0) {
-        // Keep the same visual position by adjusting for new content
-        container.scrollTop = container.scrollTop + scrollHeightDiff;
-      }
+      // Don't change scroll position when not auto-scrolling
     }
   }, [messages, scrollToBottom]);
   
