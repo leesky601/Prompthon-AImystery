@@ -21,7 +21,8 @@ class PurchaseAgent extends BaseAgent {
 2. 구매 시 얻게 되는 실질적 혜택 강조
 3. 장기 사용 시 경제성 부각
 4. 소유의 심리적 만족감 어필
-5. 하고싶은 말이 많아도 최대 3문장으로만 제시
+5. 하고싶은 말이 많아도 정확히 1문장으로만 제시
+6. 사용자 질문에 답하면서 상대방(구독봇) 주장에 대한 반박도 포함 가능
 `;
 
     if (productInfo) {
@@ -120,6 +121,11 @@ class PurchaseAgent extends BaseAgent {
         throw new Error(response.error || 'Failed to generate response');
       }
 
+      // 빈 응답 처리
+      if (!response.content || response.content.trim() === '') {
+        response.content = '애매하긴해';
+      }
+
       return this.formatResponse(response.content, {
         productId,
         searchResults: purchaseInfoResult.results ? purchaseInfoResult.results.length : 0
@@ -147,7 +153,7 @@ class PurchaseAgent extends BaseAgent {
     const rebuttalPrompt = `
 상대방 주장: ${opponentArgument}
 
-위 구독 주장에 대해 반박하고, 구매가 더 나은 이유를 데이터와 함께 제시하세요.
+위 구독 주장에 대해 반박하고, 구매가 더 나은 이유를 데이터와 함께 정확히 1문장으로만 제시하세요.
 구독의 숨겨진 비용이나 제약사항도 언급하세요.
 `;
     

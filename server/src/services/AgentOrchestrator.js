@@ -371,35 +371,77 @@ class AgentOrchestrator {
         userData: session.userData
       };
 
-      // Purchase agent responds to user input
-      const purchaseResponse = await this.purchaseAgent.processMessage(
-        context,
-        userMessage
-      );
-      session.conversationHistory.push(purchaseResponse);
-      
-      res.write(`data: ${JSON.stringify({
-        type: 'message',
-        data: purchaseResponse
-      })}\n\n`);
+      // Initialize debate turn counter if not exists
+      if (!session.debateTurnCounter) {
+        session.debateTurnCounter = 0;
+      }
+      session.debateTurnCounter++;
 
-      // Wait 4 seconds before subscription agent
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      const isOddTurn = session.debateTurnCounter % 2 === 1;
 
-      // Subscription agent provides counter-argument
-      const subscriptionRebuttal = await this.subscriptionAgent.generateRebuttal(
-        context,
-        purchaseResponse.content
-      );
-      session.conversationHistory.push(subscriptionRebuttal);
-      
-      res.write(`data: ${JSON.stringify({
-        type: 'message',
-        data: subscriptionRebuttal
-      })}\n\n`);
+      if (isOddTurn) {
+        // Odd turns: Purchase → Subscription (each can include rebuttal)
+        
+        // Turn 1: Purchase agent responds to user input (can include rebuttal)
+        const purchaseResponse = await this.purchaseAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(purchaseResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: purchaseResponse
+        })}\n\n`);
 
-      // Wait 4 seconds before moderator
-      await new Promise(resolve => setTimeout(resolve, 2500));
+        // Wait 2 seconds before subscription agent
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Turn 2: Subscription agent responds to user input (can include rebuttal)
+        const subscriptionResponse = await this.subscriptionAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(subscriptionResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: subscriptionResponse
+        })}\n\n`);
+
+      } else {
+        // Even turns: Subscription → Purchase (each can include rebuttal)
+        
+        // Turn 1: Subscription agent responds to user input (can include rebuttal)
+        const subscriptionResponse = await this.subscriptionAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(subscriptionResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: subscriptionResponse
+        })}\n\n`);
+
+        // Wait 2 seconds before purchase agent
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Turn 2: Purchase agent responds to user input (can include rebuttal)
+        const purchaseResponse = await this.purchaseAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(purchaseResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: purchaseResponse
+        })}\n\n`);
+      }
+
+      // Wait 2 seconds before moderator
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Moderator summarizes and asks next question
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion(context);

@@ -13,9 +13,18 @@
     @apply border-border;
   }
 
+  html {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 
@@ -197,5 +206,17 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+}
+
+/* Sparkle animation for start button */
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 16px rgba(165, 0, 52, 0.4);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 8px 24px rgba(165, 0, 52, 0.6);
   }
 }

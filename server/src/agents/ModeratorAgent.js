@@ -31,7 +31,7 @@ class ModeratorAgent extends BaseAgent {
     }];
 
     const systemPrompt = this.getSystemPrompt() + `
-사용자를 환영하고, 구매와 구독 중 최적의 선택을 도와드리겠다고 안내하세요.
+사용자를 환영하고, 구매와 구독이 애매하지만 이 중 최적의 선택을 도와드리겠다고 안내하세요.
 "토론을 시작할까요?"라는 질문으로 마무리하세요.
 가능한 한 간결하게 2문장 이내로 말하세요.
 `;
@@ -98,7 +98,26 @@ class ModeratorAgent extends BaseAgent {
 
       // Determine unexplored topics
       const exploredTopics = this.analyzeExploredTopics(conversationHistory);
-      const suggestedTopics = this.getSuggestedTopics(exploredTopics);
+      const unansweredTopics = []; // AI가 직접 분석하므로 빈 배열로 설정
+      const suggestedTopics = this.getSuggestedTopics(exploredTopics, unansweredTopics, conversationHistory);
+      
+      // 사용자 응답 분석 추가
+      const userResponses = conversationHistory.filter(msg => msg.role === 'user');
+      let userContext = '';
+      if (userResponses.length > 0) {
+        userContext = '\n[사용자 응답 분석]\n';
+        userResponses.slice(-3).forEach((response, index) => {
+          userContext += `- 응답 ${index + 1}: ${response.content}\n`;
+        });
+        
+        // AI가 직접 사용자 응답을 분석하도록 안내
+        userContext += `\n[중요] 사용자 응답을 분석하여 어떤 주제에 대해 답변했는지 파악하고, 아직 답변하지 않은 주제에 대해 질문하세요.\n`;
+        
+        // 사용자 응답이 적을 때 추가 안내
+        if (userResponses.length <= 1) {
+          userContext += '\n[주의] 사용자가 아직 한 번만 답변했습니다. 더 구체적이고 개인적인 상황을 묻는 질문을 하세요.\n';
+        }
+      }
 
       // Add product context if available
       if (productInfo) {
@@ -112,26 +131,35 @@ class ModeratorAgent extends BaseAgent {
       
       const messages = [{
         role: 'user',
-        content: `다음 대화 내용을 기반으로 응답하세요: ${summaryContext}
+        content: `다음 대화 내용을 기반으로 응답하세요: ${summaryContext}${userContext}
         
 아직 다루지 않은 주제: ${suggestedTopics.join(', ')}
 
+[중요] 사용자 응답 분석:
+- 사용자가 이미 답변한 주제들을 파악하고, 아직 답변하지 않은 주제에 대해 질문하세요
+- 사용자 응답이 적을 때는 더 구체적이고 개인적인 상황을 묻는 질문을 하세요
+- 중복 질문을 피하고 새로운 관점의 질문을 하세요
+
 필수 응답 형식:
-1. 먼저 구매봇과 구독봇의 핵심 주장을 한 문장씩 요약하세요
-2. 그 다음 사용자에게 새로운 관점의 질문을 하세요
-3. 답변은 3문장 이내로 간결하게 하세요
+1. 사용자의 실제 응답을 고려하여 새로운 관점의 질문을 하세요
+2. 답변은 정확히 1문장으로만 하세요
+3. 사용자가 이미 답변한 내용과 중복되지 않도록 하세요
+4. 아직 답변하지 않은 주제에 대해 구체적으로 질문하세요
 
 예시:
-"구매봇은 [핵심주장] 라고 하고, 구독봇은 [핵심주장] 라고 하긴해. 
-그런데 [사용자 관련 질문]이 더 중요하지 않긴해?"`
+- "그럼 [구체적인 상황]에 대해서는 어떻게 생각하긴해?"
+- "[새로운 관점]이 궁금하긴해, 알려줄래 말래?"
+- "[사용자 상황]을 고려하면 어떤 게 더 나을 것 같긴해?"
+`
       }];
 
       const systemPrompt = this.getSystemPrompt() + `
 필수 규칙:
-- 반드시 구매봇과 구독봇의 주장을 요약하고 시작하세요
-- "이전 대화 기록이 없다"는 등의 시스템 메시지 절대 금지
-- 대화가 없어도 일반적인 구매/구독 장단점으로 요약 생성
+- 구매봇과 구독봇의 주장 요약 없이 바로 사용자에게 질문하세요
+- 정확히 1문장으로만 응답하세요
 - 자연스러운 대화체 유지
+- 사용자가 이미 답변한 주제는 피하고 아직 답변하지 않은 주제에 대해 질문하세요
+- 사용자 응답 분석을 통해 중복을 피하고 새로운 관점의 질문을 하세요
 `;
       const response = await this.generateResponse(messages, systemPrompt, 0.7);
 
@@ -139,11 +167,17 @@ class ModeratorAgent extends BaseAgent {
         throw new Error(response.error || 'Failed to generate summary');
       }
 
+      // 빈 응답 처리
+      if (!response.content || response.content.trim() === '') {
+        response.content = '애매하긴해';
+      }
+
       // Generate quick response options
       const quickResponses = await this.generateQuickResponses(
-        response.content,
-        suggestedTopics[0] || '',
-        exploredTopics
+        conversationHistory,
+        exploredTopics,
+        unansweredTopics,
+        response.content  // 현재 생성 중인 안내봇 질문 전달
       );
 
       return this.formatResponse(response.content, {
@@ -276,7 +310,7 @@ ${subscriptionPoints || '구독의 일반적 장점: 낮은 초기비용, 케어
       
       // 에러 발생 시 기본 응답 (구매 추천)
       return this.formatResponse(
-        '[최종 결론]: 구매\n[적합도]: 구매 0%, 구독 0%\n[핵심 근거 3줄]:\n- 시스템 오류로 인한 기본 추천\n- 구매 시 소유권 확보 및 장기 경제성\n- 안정적인 사용 환경 제공\n[다음 단계 제안 1줄]: 구매 옵션을 선택하고 상담원 연결을 진행하긴해',
+        '[최종 결론]: 구매\n[적합도]: 구매 50%, 구독 50%\n[핵심 근거 3줄]:\n- 기본 추천\n- 구매 시 소유권 확보 및 장기 경제성\n- 안정적인 사용 환경 제공\n[다음 단계 제안 1줄]: 구매 옵션을 선택하고 상담원 연결을 진행하긴해',
         {
           type: 'conclusion',
           conversationEnded: true
@@ -288,45 +322,168 @@ ${subscriptionPoints || '구독의 일반적 장점: 낮은 초기비용, 케어
   analyzeExploredTopics(conversationHistory) {
     const explored = new Set();
     const keywords = {
-      '초기비용': ['초기', '비용', '부담', '일시불', '할부', '현금', '월 납부'],
-      '케어서비스': ['케어', '서비스', 'AS', '관리', '점검', '고장', '보증'],
-      '교체주기': ['교체', '최신', '신제품', '업그레이드', '중고', '성능'],
-      '사용패턴': ['사용', '패턴', '라이프', '생활', '이사', '가구', '주말', '매일'],
-      '경제성': ['경제', '절약', '비교', '총비용', '전기료', '감가상각', '투자'],
-      '소유권': ['소유', '내 것', '자산', '짐', '커스터마이징'],
-      '최신기술': ['최신 기능', 'AI 기능', '스마트 기능', '기존 모델'],
-      '환경변화': ['이사', '해외', '전세', '자가']
+      '초기비용': ['초기', '비용', '부담', '일시불', '할부', '현금', '월 납부', '초기비용이', '부담스러워', '부담돼'],
+      '케어서비스': ['케어', '서비스', 'AS', '관리', '점검', '고장', '보증', '케어서비스가', '필요해', '걱정돼'],
+      '교체주기': ['교체', '최신', '신제품', '업그레이드', '중고', '성능', '최신기술을', '원해', '기술이'],
+      '사용패턴': ['사용', '패턴', '라이프', '생활', '이사', '가구', '주말', '매일', '사용빈도가', '높아', '가끔씩만', '쓸 것 같아'],
+      '경제성': ['경제', '절약', '비교', '총비용', '전기료', '감가상각', '투자', '장기적으로', '경제적인', '중요해'],
+      '소유권': ['소유', '내 것', '자산', '짐', '커스터마이징', '소유권이', '중요해'],
+      '최신기술': ['최신 기능', 'AI 기능', '스마트 기능', '기존 모델', '최신기술을', '원해', '기능이'],
+      '환경변화': ['이사', '해외', '전세', '자가', '이사할', '가능성이', '있어', '안정적으로', '환경변화가', '있을 수 있어']
     };
 
-    // Analyze all messages including quick responses that were clicked
-    conversationHistory.forEach(msg => {
+    // 사용자 응답만 분석 (role === 'user'인 메시지만)
+    const userMessages = conversationHistory.filter(msg => msg.role === 'user');
+    
+    userMessages.forEach(msg => {
       const content = msg.content.toLowerCase();
       
-      // Check each topic's keywords
+      // 각 주제의 키워드 확인
       Object.entries(keywords).forEach(([topic, words]) => {
         if (words.some(word => content.includes(word))) {
           explored.add(topic);
         }
       });
-      
-      // Also check for exact topic matches in questions from ModeratorAgent
-      if (msg.agent === '안내봇') {
-        // Check if the message contains questions about specific topics
-        if (content.includes('초기') && content.includes('비용')) explored.add('초기비용');
-        if (content.includes('케어') || content.includes('서비스')) explored.add('케어서비스');
-        if (content.includes('교체') || content.includes('최신')) explored.add('교체주기');
-        if (content.includes('사용') && content.includes('패턴')) explored.add('사용패턴');
-        if (content.includes('경제') || content.includes('비용')) explored.add('경제성');
-        if (content.includes('소유')) explored.add('소유권');
-        if (content.includes('기술') || content.includes('기능')) explored.add('최신기술');
-        if (content.includes('이사') || content.includes('환경')) explored.add('환경변화');
-      }
     });
 
+    // AI가 직접 분석하므로 키워드 매핑 결과를 그대로 사용
+    console.log('탐색된 주제들:', Array.from(explored));
     return explored;
   }
 
-  getSuggestedTopics(exploredTopics) {
+  // findUnansweredQuestions 메서드는 더 이상 사용하지 않음 - AI가 직접 분석
+  // findUnansweredQuestions(conversationHistory, exploredTopics) {
+  //   const unansweredTopics = new Set();
+    
+  //   // 안내봇 질문과 사용자 응답을 매칭
+  //   for (let i = 0; i < conversationHistory.length; i++) {
+  //     const msg = conversationHistory[i];
+      
+  //     // 안내봇 질문 찾기
+  //     if (msg.agent === '안내봇' && msg.content.includes('?')) {
+  //       const questionContent = msg.content.toLowerCase();
+        
+  //       // 질문에서 주제 추출 (개선된 로직)
+  //       let questionTopic = null;
+        
+  //       // 각 주제별로 더 정확한 키워드 매칭
+  //       const questionTopicKeywords = {
+  //         '초기비용': ['초기', '비용', '부담', '일시불', '할부', '현금', '돈', '가격', '구매비', '지불', '결제'],
+  //         '케어서비스': ['케어', '서비스', 'AS', '관리', '점검', '고장', '보증', '수리', '필터', '청소'],
+  //         '교체주기': ['교체', '최신', '신제품', '업그레이드', '중고', '성능', '기능', '모델', '신형', '구형'],
+  //         '사용패턴': ['사용', '패턴', '라이프', '생활', '이사', '가구', '주말', '매일', '자주', '가끔', '빈도'],
+  //         '경제성': ['경제', '절약', '비교', '총비용', '전기료', '감가상각', '투자', '효율', '비용절감', '장기'],
+  //         '소유권': ['소유', '내 것', '자산', '짐', '커스터마이징', '소유감', '내가', '나의', '개인'],
+  //         '최신기술': ['최신 기능', 'AI 기능', '스마트 기능', '기존 모델', '신기능', '기술', '스마트', 'AI', '자동'],
+  //         '환경변화': ['이사', '해외', '전세', '자가', '환경', '변화', '상황', '계획', '미래', '위치']
+  //       };
+        
+  //       // 각 주제별로 키워드 매칭 확인
+  //       for (const [topic, keywords] of Object.entries(questionTopicKeywords)) {
+  //         const matchedKeywords = keywords.filter(keyword => {
+  //           const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+  //           return regex.test(questionContent);
+  //         });
+          
+  //         if (matchedKeywords.length > 0) {
+  //           questionTopic = topic;
+  //           console.log(`[MODERATOR] 질문에서 ${topic} 주제 감지: ${matchedKeywords.join(', ')}`);
+  //           break;
+  //         }
+  //       }
+        
+  //       // 해당 주제에 대한 사용자 응답이 있는지 확인
+  //       if (questionTopic && exploredTopics.has(questionTopic)) {
+  //         let hasAnswer = false;
+          
+  //         // 질문 이후의 사용자 응답들 확인
+  //         for (let j = i + 1; j < conversationHistory.length; j++) {
+  //           const nextMsg = conversationHistory[j];
+  //           if (nextMsg.role === 'user') {
+  //             const answerContent = nextMsg.content.toLowerCase();
+              
+  //             // 답변이 해당 주제와 관련이 있는지 확인 (개선된 키워드 매칭)
+  //             const topicKeywords = {
+  //               '초기비용': ['초기', '비용', '부담', '일시불', '할부', '현금', '돈', '가격', '구매비', '지불', '결제', '비싸', '저렴', '할인', '카드', '포인트'],
+  //               '케어서비스': ['케어', '서비스', 'AS', '관리', '점검', '고장', '보증', '수리', '교체', '필터', '청소', '유지보수', '관리비', '추가비용'],
+  //               '교체주기': ['교체', '최신', '신제품', '업그레이드', '중고', '성능', '기능', '모델', '신형', '구형', '새것', '오래된', '기술'],
+  //               '사용패턴': ['사용', '패턴', '라이프', '생활', '이사', '가구', '주말', '매일', '자주', '가끔', '빈도', '습관', '일상', '생활방식'],
+  //               '경제성': ['경제', '절약', '비교', '총비용', '전기료', '감가상각', '투자', '효율', '절약', '비용절감', '장기', '단기', '수익', '손해'],
+  //               '소유권': ['소유', '내 것', '자산', '짐', '커스터마이징', '소유감', '내가', '나의', '개인', '소유물', '재산'],
+  //               '최신기술': ['최신 기능', 'AI 기능', '스마트 기능', '기존 모델', '신기능', '기술', '스마트', 'AI', '자동', '편의기능'],
+  //               '환경변화': ['이사', '해외', '전세', '자가', '환경', '변화', '상황', '계획', '미래', '위치', '장소']
+  //             };
+              
+  //             // 더 정확한 매칭을 위해 키워드별로 확인
+  //             if (topicKeywords[questionTopic]) {
+  //               const keywords = topicKeywords[questionTopic];
+  //               const matchedKeywords = keywords.filter(keyword => {
+  //                 // 정확한 단어 경계를 고려한 매칭
+  //                 const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+  //                 return regex.test(answerContent);
+  //               });
+                
+  //               // 키워드가 1개 이상 매칭되면 답변한 것으로 간주
+  //               if (matchedKeywords.length > 0) {
+  //                 console.log(`[MODERATOR] 사용자 답변에서 ${questionTopic} 관련 키워드 발견: ${matchedKeywords.join(', ')}`);
+  //                 hasAnswer = true;
+  //                 break;
+  //               }
+  //             }
+  //           }
+  //         }
+          
+  //         // 답변이 없으면 미답변 주제로 추가
+  //         if (!hasAnswer) {
+  //           unansweredTopics.add(questionTopic);
+  //         }
+  //       }
+  //     }
+  //   }
+    
+  //   return Array.from(unansweredTopics);
+  // }
+
+  getUserResponsesFromHistory(conversationHistory = []) {
+    // 현재 대화 기록에서 사용자 응답만 추출
+    return conversationHistory.filter(msg => msg.role === 'user');
+  }
+
+  // analyzeUserAnsweredTopics 메서드는 더 이상 사용하지 않음 - AI가 직접 분석
+  // analyzeUserAnsweredTopics(userResponses) {
+  //   // 사용자 응답에서 답변한 주제들을 분석
+  //   const topicKeywords = {
+  //     '초기비용': ['초기', '비용', '부담', '일시불', '할부', '현금', '돈', '가격', '구매비', '지불', '결제', '비싸', '저렴', '할인', '카드', '포인트'],
+  //     '케어서비스': ['케어', '서비스', 'AS', '관리', '점검', '고장', '보증', '수리', '교체', '필터', '청소', '유지보수', '관리비', '추가비용'],
+  //     '교체주기': ['교체', '최신', '신제품', '업그레이드', '중고', '성능', '기능', '모델', '신형', '구형', '새것', '오래된', '기술'],
+  //     '사용패턴': ['사용', '패턴', '라이프', '생활', '이사', '가구', '주말', '매일', '자주', '가끔', '빈도', '습관', '일상', '생활방식'],
+  //     '경제성': ['경제', '절약', '비교', '총비용', '전기료', '감가상각', '투자', '효율', '절약', '비용절감', '장기', '단기', '수익', '손해'],
+  //     '소유권': ['소유', '내 것', '자산', '짐', '커스터마이징', '소유감', '내가', '나의', '개인', '소유물', '재산'],
+  //     '최신기술': ['최신 기능', 'AI 기능', '스마트 기능', '기존 모델', '신기능', '기술', '스마트', 'AI', '자동', '편의기능'],
+  //     '환경변화': ['이사', '해외', '전세', '자가', '환경', '변화', '상황', '계획', '미래', '위치', '장소']
+  //   };
+
+  //   const answeredTopics = new Set();
+    
+  //   userResponses.forEach(response => {
+  //     const content = response.content.toLowerCase();
+      
+  //     Object.entries(topicKeywords).forEach(([topic, keywords]) => {
+  //       const matchedKeywords = keywords.filter(keyword => {
+  //         const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+  //         return regex.test(content);
+  //       });
+        
+  //       if (matchedKeywords.length > 0) {
+  //         answeredTopics.add(topic);
+  //       }
+  //     });
+  //   });
+    
+  //   return Array.from(answeredTopics);
+  // }
+
+  getSuggestedTopics(exploredTopics, unansweredTopics = [], conversationHistory = []) {
     const topicMapping = {
       '초기 비용 부담': '초기비용',
       '케어 서비스 필요성': '케어서비스',
@@ -340,112 +497,193 @@ ${subscriptionPoints || '구독의 일반적 장점: 낮은 초기비용, 케어
 
     const allTopics = Object.keys(topicMapping);
     
+    // 답변하지 않은 주제를 우선적으로 제안
+    const unansweredTopicNames = unansweredTopics.map(topicKey => {
+      return Object.keys(topicMapping).find(name => topicMapping[name] === topicKey);
+    }).filter(Boolean);
+    
+    if (unansweredTopicNames.length > 0) {
+      return unansweredTopicNames.slice(0, 2);
+    }
+    
     // Filter out topics that have already been explored
     const unexploredTopics = allTopics.filter(topic => {
       const topicKey = topicMapping[topic];
       return !exploredTopics.has(topicKey);
     });
 
-    // If all topics are explored, return empty array to avoid repetition
+    // If all topics are explored, return some core topics to continue conversation
     if (unexploredTopics.length === 0) {
-      return [];
+      // 사용자 응답이 적을 때는 더 구체적인 질문을 하기 위해 특정 주제 반환
+      const userResponses = this.getUserResponsesFromHistory(conversationHistory);
+      if (userResponses.length <= 1) {
+        return ['사용 패턴과 라이프스타일', '초기 비용 부담'];
+      }
+      return ['초기 비용 부담', '장기 경제성', '사용 패턴과 라이프스타일'];
     }
 
     return unexploredTopics.slice(0, 3);
   }
 
-  async generateQuickResponses(question, suggestedTopic, exploredTopics) {
-    // Track which responses have been used to avoid repetition
-    const topicResponseSets = {
-      '초기 비용 부담': [
-        ['초기 비용이 부담스러워요', '일시불로 구매할 여유가 있어요'],
-        ['할부도 가능한가요?', '현금 구매 시 할인이 있나요?'],
-        ['월 납부액이 궁금해요', '총 비용 비교를 보고 싶어요']
-      ],
-      '케어 서비스 필요성': [
-        ['케어 서비스가 꼭 필요해요', '스스로 관리할 수 있어요'],
-        ['AS 비용이 걱정돼요', '보증 기간이 얼마나 되나요?'],
-        ['정기 점검이 필요한가요?', '고장 나면 어떻게 하죠?']
-      ],
-      '제품 교체 주기': [
-        ['최신 제품을 자주 바꾸고 싶어요', '한 제품을 오래 사용하는 편이에요'],
-        ['3년 후에도 성능이 괜찮을까요?', '신제품 출시 주기가 어떻게 되나요?'],
-        ['중고로 팔 때 가격이 어느 정도인가요?', '업그레이드 혜택이 있나요?']
-      ],
-      '사용 패턴과 라이프스타일': [
-        ['자주 이사를 다니는 편이에요', '한 곳에 오래 정착해 있어요'],
-        ['1인 가구에 적합한가요?', '가족이 늘어날 예정이에요'],
-        ['주말에만 사용해요', '매일 사용하는 필수품이에요']
-      ],
-      '장기 경제성': [
-        ['장기적인 비용 절감이 중요해요', '월 고정 지출이 편해요'],
-        ['5년 사용 시 총 비용이 궁금해요', '전기료 절약이 되나요?'],
-        ['감가상각을 고려하면 어떤가요?', '투자 가치가 있을까요?']
-      ],
-      '소유권의 가치': [
-        ['내 것이라는 느낌이 중요해요', '소유보다 사용이 중요해요'],
-        ['자산으로 남는 게 좋아요', '짐이 되는 건 싫어요'],
-        ['커스터마이징을 하고 싶어요', '기본 기능만 있으면 돼요']
-      ],
-      '최신 기술 선호도': [
-        ['항상 최신 기능을 써보고 싶어요', '검증된 기술이 안전해요'],
-        ['AI 기능이 정말 필요한가요?', '기존 모델과 차이가 큰가요?'],
-        ['스마트 기능 활용도가 높아요', '기본 기능만 써요']
-      ],
-      '이사나 환경 변화 가능성': [
-        ['곧 이사 예정이에요', '당분간 이사 계획 없어요'],
-        ['해외 거주 가능성이 있어요', '평생 여기 살 예정이에요'],
-        ['전세라서 불안해요', '자가 소유예요']
-      ]
-    };
-
-    // If no suggested topic (all explored), provide concluding responses
-    if (!suggestedTopic) {
-      return ['구독이 더 나을 것 같아요', '구매가 더 합리적인 것 같아요'];
-    }
-
-    // 대화 턴 수에 따라 다른 응답 세트 선택
-    const conversationTurn = Math.floor(Math.random() * 3); // 0, 1, 2 중 랜덤
-    const responseSet = topicResponseSets[suggestedTopic];
-    
-    if (responseSet && responseSet[conversationTurn]) {
-      // Filter out responses that match already explored topics
-      const filteredResponses = responseSet[conversationTurn].filter(response => {
-        const responseLower = response.toLowerCase();
-        // Check if this response relates to an already explored topic
-        const isExplored = Array.from(exploredTopics).some(topic => {
-          const topicKeywords = {
-            '초기비용': ['초기', '비용', '일시불', '할부', '현금'],
-            '케어서비스': ['케어', '서비스', 'AS', '점검', '고장'],
-            '교체주기': ['교체', '최신', '신제품', '중고'],
-            '사용패턴': ['이사', '가구', '주말', '매일'],
-            '경제성': ['비용', '절약', '전기료'],
-            '소유권': ['소유', '자산', '커스터마이징'],
-            '최신기술': ['AI', '스마트', '기능'],
-            '환경변화': ['이사', '해외', '전세', '자가']
-          };
-          
-          const keywords = topicKeywords[topic] || [];
-          return keywords.some(keyword => responseLower.includes(keyword));
-        });
-        
-        return !isExplored;
-      });
+  async generateQuickResponses(conversationHistory, exploredTopics, unansweredTopics, currentQuestion = null) {
+    try {
+      // 현재 생성 중인 안내봇 질문이 있으면 그것을 사용, 없으면 대화 기록에서 찾기
+      let lastModeratorQuestion = currentQuestion;
       
-      // If we have filtered responses, use them; otherwise provide generic ones
-      if (filteredResponses.length >= 2) {
-        return filteredResponses.slice(0, 2);
+      if (!lastModeratorQuestion) {
+        // 대화 기록을 역순으로 검색하여 가장 최근의 안내봇 질문 찾기
+        console.log('[MODERATOR] 대화 기록 전체 검색 시작...');
+        for (let i = conversationHistory.length - 1; i >= 0; i--) {
+          const msg = conversationHistory[i];
+          console.log(`[MODERATOR] 인덱스 ${i}: ${msg.agent} - ${msg.content.substring(0, 30)}...`);
+          if (msg.agent === '안내봇') {
+            lastModeratorQuestion = msg;
+            console.log(`[MODERATOR] 안내봇 질문 발견! 인덱스: ${i}`);
+            break;
+          }
+        }
+      } else {
+        console.log('[MODERATOR] 현재 생성 중인 질문 사용:', lastModeratorQuestion.substring(0, 50) + '...');
       }
+      
+      if (!lastModeratorQuestion) {
+        // 안내봇 질문이 없으면 기본 응답 반환
+        console.log('[MODERATOR] 안내봇 질문을 찾을 수 없음');
+        return ['더 자세히 알아보고 싶어요', '다른 옵션도 있나요?'];
+      }
+      
+      // 질문 내용 추출 (문자열이면 그대로, 객체면 content 속성 사용)
+      const questionContent = typeof lastModeratorQuestion === 'string' 
+        ? lastModeratorQuestion 
+        : lastModeratorQuestion.content;
+      
+      console.log('[MODERATOR] 전체 대화 기록 길이:', conversationHistory.length);
+      console.log('[MODERATOR] 최근 3개 메시지:');
+      conversationHistory.slice(-3).forEach((msg, idx) => {
+        console.log(`  ${conversationHistory.length - 3 + idx}: ${msg.agent} - ${msg.content.substring(0, 50)}...`);
+      });
+      console.log('[MODERATOR] 사용할 안내봇 질문:', questionContent);
+      
+      const messages = [{
+        role: 'user',
+        content: `안내봇이 방금 한 질문: "${questionContent}"
+
+이 질문에 대해 사용자가 어떻게 답변할지 예상하여 정확히 2가지 응답 옵션만 생성해주세요.
+
+규칙:
+- 구매나 구독에 대한 선호도를 드러내지 말고 사용자의 예상되는 상황에 대해서만 작성하세요
+- 자연스러운 대화체로 작성하세요
+- 각 응답은 1마디로 아주 짧게 작성하세요
+- 정확히 2개의 응답만 생성하세요
+
+응답 형식 (반드시 이 형식을 따라주세요):
+1. [첫 번째 응답]
+2. [두 번째 응답]
+
+예시:
+1. 비용이 부담스러워요
+2. 성능이 중요해요`
+      }];
+
+      const systemPrompt = `당신은 사용자의 구매/구독 결정을 돕는 AI 어시스턴트입니다.
+안내봇의 질문에 대해 사용자가 어떻게 답변할지 예상하여 정확히 2가지 응답 옵션만 생성해주세요.
+
+규칙:
+- 구매나 구독에 대한 선호도를 드러내지 말고 중립적인 응답으로 작성하세요
+- 구체적이고 명확한 상황이나 선호도를 표현하세요
+- 자연스럽고 개인적인 상황을 반영한 응답으로 작성하세요
+- 정확히 2개의 응답만 생성하세요
+- 반드시 "1. [응답]" "2. [응답]" 형식으로만 작성하세요`;
+
+      const response = await this.generateResponse(messages, systemPrompt, 0.3);
+      
+      if (response.error) {
+        console.error('Quick responses generation error:', response.error);
+        // 에러 시 기본 응답 반환
+        return ['더 자세히 알아보고 싶어요', '다른 옵션도 있나요?'];
+      }
+
+      // 응답에서 번호가 있는 줄들을 추출 (더 유연한 파싱)
+      const lines = response.content.split('\n').filter(line => line.trim());
+      const responses = [];
+      
+      for (const line of lines) {
+        // 다양한 번호 형식 지원: "1.", "1)", "-", "•" 등
+        const match = line.match(/^[\d\-\•]\s*(.+)$/) || line.match(/^\d+[\.\)]\s*(.+)$/);
+        if (match) {
+          let content = match[1].trim();
+          // 앞에 점이 남아있으면 제거
+          if (content.startsWith('.')) {
+            content = content.substring(1).trim();
+          }
+          if (content && content.length > 0) {
+            responses.push(content);
+          }
+        }
+      }
+
+      // 파싱이 실패한 경우 더 강력한 파싱 시도
+      if (responses.length < 2) {
+        console.log('[MODERATOR] 파싱 실패, 강력한 파싱 시도:', response.content);
+        
+        // 숫자로 시작하는 모든 줄 찾기
+        const numberLines = lines.filter(line => /^\d+/.test(line.trim()));
+        for (const line of numberLines) {
+          let content = line.replace(/^\d+[\.\)\s]*/, '').trim();
+          // 앞에 점이 남아있으면 제거
+          if (content.startsWith('.')) {
+            content = content.substring(1).trim();
+          }
+          if (content && content.length > 0 && !responses.includes(content)) {
+            responses.push(content);
+          }
+        }
+        
+        // 대시나 불릿으로 시작하는 줄 찾기
+        const bulletLines = lines.filter(line => /^[\-\•]\s/.test(line.trim()));
+        for (const line of bulletLines) {
+          const content = line.replace(/^[\-\•]\s*/, '').trim();
+          if (content && content.length > 0 && !responses.includes(content)) {
+            responses.push(content);
+          }
+        }
+      }
+
+      // 2개의 응답이 있으면 반환
+      if (responses.length >= 2) {
+        return responses.slice(0, 2);
+      } 
+      
+      // 1개만 있으면 추가로 생성
+      if (responses.length === 1) {
+        const additionalResponses = [
+          '더 자세히 알아보고 싶어요',
+          '다른 옵션도 있나요?',
+          '비용이 걱정돼요',
+          '성능이 중요해요',
+          '사용빈도가 높아요',
+          '케어서비스가 필요해요'
+        ];
+        const randomResponse = additionalResponses[Math.floor(Math.random() * additionalResponses.length)];
+        return [responses[0], randomResponse];
+      }
+      
+      // 파싱 실패 시 더 구체적인 기본 응답들
+      const fallbackResponses = [
+        ['비용이 부담스러워요', '장기적으로 경제적인 게 중요해요'],
+        ['케어서비스가 필요해요', '최신기술을 원해요'],
+        ['사용빈도가 높아요', '가끔씩만 쓸 것 같아요'],
+        ['이사할 가능성이 있어요', '안정적으로 쓸 것 같아요'],
+        ['AS가 걱정돼요', '성능이 중요해요'],
+        ['환경변화가 있을 수 있어요', '지금 상황이 중요해요']
+      ];
+      const randomIndex = Math.floor(Math.random() * fallbackResponses.length);
+      return fallbackResponses[randomIndex];
+
+    } catch (error) {
+      console.error('generateQuickResponses error:', error);
+      return ['더 자세히 알아보고 싶어요', '다른 옵션도 있나요?'];
     }
-    
-    // 기본 응답들도 다양화
-    const defaultResponses = [
-      ['구독이 더 나을 것 같아요', '구매가 더 합리적인 것 같아요'],
-      ['더 자세히 알아보고 싶어요', '다른 옵션도 있나요?'],
-      ['실제 사용자 후기가 궁금해요', '전문가 의견을 듣고 싶어요']
-    ];
-    
-    return defaultResponses[conversationTurn] || defaultResponses[0];
   }
 }
 

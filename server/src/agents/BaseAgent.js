@@ -64,6 +64,11 @@ class BaseAgent {
 
   // Format response with agent metadata (with natural summarization)
   formatResponse(content, metadata = {}) {
+    // 빈 메시지나 에러로 인한 빈 응답 처리
+    if (!content || content.trim() === '') {
+      content = '애매하긴해';
+    }
+    
     const concise = this.summarizeNaturally(content, 260);
     return {
       agent: this.name,
@@ -103,6 +108,8 @@ class BaseAgent {
 - "구독이 더 경제적이긴해"
 - "케어 서비스까지 받을 수 있긴해"
 - "구독 할래말래?"
+- "도와줄거긴해"
+" "정리해줄거긴해"
 
 [잘못된 문장 끝 예시 - 절대 사용 금지]
 - 물음표 바로 뒤에 긴해 절대 사용 금지 (예시 : "시작할까요?긴해")
@@ -111,7 +118,7 @@ class BaseAgent {
 - ""맘에 들긴해."긴해" (X)
 - "선호긴해" (X)
 - "하긴해!하긴해" (X)
-- "도와줄게 긴해" (X)
+- "도와줄게 긴해" (X) -> "도와줄거긴해"
 `;
   }
 

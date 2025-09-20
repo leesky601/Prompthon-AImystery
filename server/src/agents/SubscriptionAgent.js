@@ -21,7 +21,8 @@ class SubscriptionAgent extends BaseAgent {
 2. 구독 시 얻게 되는 지속적인 혜택 강조
 3. 케어 서비스와 AS의 편의성 부각
 4. 라이프스타일 변화에 따른 유연성 어필
-5. 하고싶은 말이 많아도 최대 3문장으로만 제시
+5. 하고싶은 말이 많아도 정확히 1문장으로만 제시
+6. 사용자 질문에 답하면서 상대방(구매봇) 주장에 대한 반박도 포함 가능
 `;
 
     if (productInfo) {
@@ -133,6 +134,11 @@ class SubscriptionAgent extends BaseAgent {
         throw new Error(response.error || 'Failed to generate response');
       }
 
+      // 빈 응답 처리
+      if (!response.content || response.content.trim() === '') {
+        response.content = '애매하긴해';
+      }
+
       return this.formatResponse(response.content, {
         productId,
         searchResults: subscriptionBenefitsResult.results ? subscriptionBenefitsResult.results.length : 0
@@ -160,7 +166,7 @@ class SubscriptionAgent extends BaseAgent {
     const rebuttalPrompt = `
 상대방 주장: ${opponentArgument}
 
-위 구매 주장에 대해 반박하고, 구독이 더 나은 이유를 데이터와 함께 제시하세요.
+위 구매 주장에 대해 반박하고, 구독이 더 나은 이유를 데이터와 함께 정확히 1문장으로만 제시하세요.
 초기 비용 부담과 유연성 측면에서 구독의 장점을 강조하세요.
 `;
     

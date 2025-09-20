@@ -55,14 +55,25 @@ gnome-terminal -- bash -c "cd '$(pwd)' && npm run dev; exec bash" 2>/dev/null ||
 xterm -e "cd '$(pwd)' && npm run dev" 2>/dev/null || \
 echo "Please manually open a terminal and run: npm run dev"
 
+# Wait a moment for frontend to start
+sleep 3
+
+# Start ngrok in new terminal
+echo "🌐 Starting ngrok tunnel..."
+osascript -e 'tell app "Terminal" to do script "cd '"$(pwd)"' && ngrok http 3000 --domain=unexpeditious-tricia-unblenchingly.ngrok-free.app"' 2>/dev/null || \
+gnome-terminal -- bash -c "cd '$(pwd)' && ngrok http 3000 --domain=unexpeditious-tricia-unblenchingly.ngrok-free.app; exec bash" 2>/dev/null || \
+xterm -e "cd '$(pwd)' && ngrok http 3000 --domain=unexpeditious-tricia-unblenchingly.ngrok-free.app" 2>/dev/null || \
+echo "Please manually open a terminal and run: ngrok http 3000 --domain=unexpeditious-tricia-unblenchingly.ngrok-free.app"
+
 echo ""
 echo "========================================"
 echo " Development servers are starting..."
 echo ""
 echo " Backend API: http://localhost:4000"
 echo " Frontend: http://localhost:3000"
+echo " ngrok URL: https://unexpeditious-tricia-unblenchingly.ngrok-free.app/"
 echo ""
-echo " Both services are running in separate windows."
+echo " All services are running in separate windows."
 echo " Close those windows to stop the services."
 echo "========================================"
 echo ""
