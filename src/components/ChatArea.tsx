@@ -47,7 +47,7 @@ interface ChatAreaProps {
 // 중요 키워드를 하이라이팅하는 함수
 const highlightKeywords = (content: string) => {
   const keywords = [
-    '구매', '구매 비용', '교체 가능', '구독', '구독 취소', '최신 TV', '용도', '구독료', '장기 경제성', '일시불', '소유권', '소유', '소유감', '내 소유', '자산', '케어서비스', '케어 서비스','구독 시', '구매 시', '6년 구독', '5년 구독', '4년 구독', '3년 구독',
+    '구매', '구매 비용', '교체 가능', '정기 점검', '가성비', '구독', '구독 취소', '최신 TV', '용도', '구독료', '장기 경제성', '일시불', '소유권', '소유', '소유감', '내 소유', '자산', '케어서비스', '케어 서비스','구독 시', '구매 시', '6년 구독', '5년 구독', '4년 구독', '3년 구독',
     'LG 트롬 오브제컬렉션 건조기', 'QNED TV', 'LG 퓨리케어 오브제컬렉션 정수기', 'LG 휘센 오브제컬렉션 쿨 에어컨 2in1', 'LG QNED TV (벽걸이형)', 'LG QNED TV', '자가관리',
     'AS', '관리', '점검', '고장', '고장 걱정', '공식 케어센터', '보증', '교체', '업그레이드', '경제적', '이득', '절약', '필터', '추가 비용', '포인트', '카드할인', '선결제 할인', '서비스 종료', '기성비', '장기적', '구독 중단', '무상 수리', '구매봇', '구독봇', '안내봇', 'LG 가전',
     '비교', '총비용', '전기료', '비용 절감', '가격', '가격 변동', '마음 편히', '신제품', '최신', '최신 기술', '최신 기능','중고', '성능', '선호도', '초기 비용', '초기 부담', '할인 혜택',
@@ -224,7 +224,7 @@ const parseConclusionMessage = (content: string) => {
                 )}
               </div>
             </div>
-            <p className="text-yellow-700 text-xs">
+            <p className="text-yellow-700 text-sm">
               <strong>{nextStep}</strong>
             </p>
           </div>
@@ -438,7 +438,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
 
         {/* Typing Indicator with Avatar */}
         {(isTyping || isInitializing) && (() => {
-          // 다음에 채팅할 봇 예측 (백엔드 로직과 동일하게)
+          // 다음에 채팅할 봇 예측 (백엔드 로직과 정확히 동일하게)
           const getNextAgent = () => {
             if (messages.length === 0) return '안내봇'; // 첫 번째는 안내봇
             
@@ -458,24 +458,28 @@ const ChatArea: React.FC<ChatAreaProps> = ({
               return '안내봇';
             }
             
-            // "시작하자" 버튼을 누른 직후는 특별히 구매봇이 먼저
-            if (lastUserMessage && lastUserMessage.content === '시작하자' && botMessagesAfterUser.length === 0) {
-              return '구매봇';
+            // "시작하자" 버튼을 누른 직후의 초기 대화 순서: 구매봇 → 구독봇 → 안내봇
+            if (lastUserMessage && lastUserMessage.content === '시작하자') {
+              if (botMessagesAfterUser.length === 0) return '구매봇';
+              if (botMessagesAfterUser.length === 1) return '구독봇';
+              if (botMessagesAfterUser.length === 2) return '안내봇';
             }
             
+            // 백엔드와 동일한 로직: debateTurnCounter 기반
+            // 사용자 메시지 개수로 턴 계산 (백엔드의 debateTurnCounter와 동일)
             const debateTurnCount = userMessages.length;
             const isOddTurn = debateTurnCount % 2 === 1;
             
             if (isOddTurn) {
-              // 홀수 턴: 구매봇 → 구독봇
-              if (botMessagesAfterUser.length === 0) return '구매봇';
-              if (botMessagesAfterUser.length === 1) return '구독봇';
-              return '안내봇'; // 다음은 안내봇
-            } else {
-              // 짝수 턴: 구독봇 → 구매봇
+              // 홀수 턴 (1, 3, 5...): 구독봇 → 구매봇 → 안내봇
               if (botMessagesAfterUser.length === 0) return '구독봇';
               if (botMessagesAfterUser.length === 1) return '구매봇';
-              return '안내봇'; // 다음은 안내봇
+              return '안내봇';
+            } else {
+              // 짝수 턴 (2, 4, 6...): 구매봇 → 구독봇 → 안내봇
+              if (botMessagesAfterUser.length === 0) return '구매봇';
+              if (botMessagesAfterUser.length === 1) return '구독봇';
+              return '안내봇';
             }
           };
           

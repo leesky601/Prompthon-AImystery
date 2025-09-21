@@ -380,39 +380,9 @@ class AgentOrchestrator {
       const isOddTurn = session.debateTurnCounter % 2 === 1;
 
       if (isOddTurn) {
-        // Odd turns: Purchase → Subscription (each can include rebuttal)
+        // 홀수 턴 (1, 3, 5...): 구독봇 → 구매봇 → 안내봇
         
-        // Turn 1: Purchase agent responds to user input (can include rebuttal)
-        const purchaseResponse = await this.purchaseAgent.processMessage(
-          context,
-          userMessage
-        );
-        session.conversationHistory.push(purchaseResponse);
-        
-        res.write(`data: ${JSON.stringify({
-          type: 'message',
-          data: purchaseResponse
-        })}\n\n`);
-
-        // Wait 2 seconds before subscription agent
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Turn 2: Subscription agent responds to user input (can include rebuttal)
-        const subscriptionResponse = await this.subscriptionAgent.processMessage(
-          context,
-          userMessage
-        );
-        session.conversationHistory.push(subscriptionResponse);
-        
-        res.write(`data: ${JSON.stringify({
-          type: 'message',
-          data: subscriptionResponse
-        })}\n\n`);
-
-      } else {
-        // Even turns: Subscription → Purchase (each can include rebuttal)
-        
-        // Turn 1: Subscription agent responds to user input (can include rebuttal)
+        // Turn 1: Subscription agent responds to user input
         const subscriptionResponse = await this.subscriptionAgent.processMessage(
           context,
           userMessage
@@ -427,7 +397,7 @@ class AgentOrchestrator {
         // Wait 2 seconds before purchase agent
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Turn 2: Purchase agent responds to user input (can include rebuttal)
+        // Turn 2: Purchase agent responds to user input
         const purchaseResponse = await this.purchaseAgent.processMessage(
           context,
           userMessage
@@ -437,6 +407,36 @@ class AgentOrchestrator {
         res.write(`data: ${JSON.stringify({
           type: 'message',
           data: purchaseResponse
+        })}\n\n`);
+
+      } else {
+        // 짝수 턴 (2, 4, 6...): 구매봇 → 구독봇 → 안내봇
+        
+        // Turn 1: Purchase agent responds to user input
+        const purchaseResponse = await this.purchaseAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(purchaseResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: purchaseResponse
+        })}\n\n`);
+
+        // Wait 2 seconds before subscription agent
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Turn 2: Subscription agent responds to user input
+        const subscriptionResponse = await this.subscriptionAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(subscriptionResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: subscriptionResponse
         })}\n\n`);
       }
 
