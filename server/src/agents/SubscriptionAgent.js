@@ -124,11 +124,15 @@ class SubscriptionAgent extends BaseAgent {
         }
       }
 
-      // Generate response
+      // Generate response with search integration if productId is available
       const systemPrompt = this.getSystemPrompt(productInfo) + contextInfo;
       console.log(`[SUBSCRIPTION_AGENT] Final system prompt: "${systemPrompt}"`);
       console.log(`[SUBSCRIPTION_AGENT] Messages sent to AI:`, JSON.stringify(messages, null, 2));
-      const response = await this.generateResponse(messages, systemPrompt, 0.8);
+      
+      // Use generateResponseWithSearch when productId is available for better context
+      const response = productId 
+        ? await this.generateResponseWithSearch(messages, systemPrompt, productId, 0.8)
+        : await this.generateResponse(messages, systemPrompt, 0.8);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to generate response');
@@ -171,6 +175,92 @@ class SubscriptionAgent extends BaseAgent {
 `;
     
     return await this.processMessage(context, rebuttalPrompt);
+  }
+  
+  // Process message with streaming support
+  async processMessageStream(context, userMessage, onChunk) {
+    try {
+      // Get product information from context
+      const productId = context.productId;
+      let productInfo = null;
+      
+      if (productId) {
+        const productResult = await this.searchConnector.getProductById(productId);
+        if (productResult.success) {
+          productInfo = productResult.document;
+        }
+      }
+
+      // Search for subscription benefits
+      const searchQuery = '구독 장점 혜택 케어서비스';
+      const subscriptionBenefitsResult = await this.searchConnector.searchSubscriptionBenefits(searchQuery);
+      
+      // Build messages context
+      const messages = [];
+      if (context.conversationHistory && context.conversationHistory.length > 0) {
+        context.conversationHistory.forEach(msg => {
+          if (msg.agent === '구독봇') {
+            messages.push({ role: 'assistant', content: msg.content });
+          } else if (msg.role === 'user') {
+            messages.push({ role: 'user', content: msg.content });
+          } else if (msg.agent) {
+            messages.push({ role: 'user', content: `[${msg.agent}의 주장]: ${msg.content}` });
+          }
+        });
+      }
+      
+      if (userMessage) {
+        messages.push({ role: 'user', content: userMessage });
+      }
+
+      // Add search results as context
+      let contextInfo = '';
+      if (subscriptionBenefitsResult.success && subscriptionBenefitsResult.results.length > 0) {
+        contextInfo = '\n[구독 혜택 정보]\n';
+        subscriptionBenefitsResult.results.slice(0, 3).forEach(result => {
+          contextInfo += `- ${result.document.benefit_title}: ${result.document.benefit_description}\n`;
+        });
+      }
+
+      // Add product-specific info
+      if (productInfo) {
+        contextInfo += '\n[제품 구독 정보]\n';
+        if (productInfo.subscription_price_6y) {
+          contextInfo += `- 6년 구독 월 ${productInfo.subscription_price_6y}원\n`;
+        }
+        if (productInfo.subscription_benefits) {
+          contextInfo += `- 구독 혜택: ${productInfo.subscription_benefits}\n`;
+        }
+        if (productInfo.care_service_description) {
+          contextInfo += `- 케어 서비스: ${productInfo.care_service_description}\n`;
+        }
+      }
+
+      // Generate streaming response
+      const systemPrompt = this.getSystemPrompt(productInfo) + contextInfo;
+      
+      let fullContent = '';
+      const chunkHandler = (chunk) => {
+        fullContent += chunk;
+        if (onChunk) onChunk(chunk);
+      };
+      
+      const response = await this.generateStreamResponse(messages, systemPrompt, chunkHandler, 0.8);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to generate streaming response');
+      }
+
+      return this.formatResponse(fullContent || response.content, {
+        productId,
+        searchResults: subscriptionBenefitsResult.results ? subscriptionBenefitsResult.results.length : 0
+      });
+    } catch (error) {
+      console.error('SubscriptionAgent Stream Error:', error);
+      const fallbackResponse = '구독이 진짜 합리적이긴해. 부담 없이 최신 제품 쓸 수 있으니까 말이긴해';
+      if (onChunk) onChunk(fallbackResponse);
+      return this.formatResponse(fallbackResponse, { error: error.message });
+    }
   }
 }
 

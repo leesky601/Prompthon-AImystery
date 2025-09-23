@@ -111,11 +111,15 @@ class PurchaseAgent extends BaseAgent {
         });
       }
 
-      // Generate response
+      // Generate response with search integration if productId is available
       const systemPrompt = this.getSystemPrompt(productInfo) + contextInfo;
       console.log(`[PURCHASE_AGENT] Final system prompt: "${systemPrompt}"`);
       console.log(`[PURCHASE_AGENT] Messages sent to AI:`, JSON.stringify(messages, null, 2));
-      const response = await this.generateResponse(messages, systemPrompt, 0.8);
+      
+      // Use generateResponseWithSearch when productId is available for better context
+      const response = productId 
+        ? await this.generateResponseWithSearch(messages, systemPrompt, productId, 0.8)
+        : await this.generateResponse(messages, systemPrompt, 0.8);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to generate response');
@@ -146,6 +150,78 @@ class PurchaseAgent extends BaseAgent {
     const initialPrompt = '제품 구매의 핵심 장점을 정확히 2가지만 제시하면서 구매를 권유하세요. 3가지 이상 제시하지 마세요.';
     console.log(`[PURCHASE_AGENT] Initial prompt: "${initialPrompt}"`);
     return await this.processMessage(context, initialPrompt);
+  }
+  
+  // Process message with streaming support
+  async processMessageStream(context, userMessage, onChunk) {
+    try {
+      // Get product information from context
+      const productId = context.productId;
+      let productInfo = null;
+      
+      if (productId) {
+        const productResult = await this.searchConnector.getProductById(productId);
+        if (productResult.success) {
+          productInfo = productResult.document;
+        }
+      }
+
+      // Search for purchase benefits
+      const searchQuery = '구매 장점 혜택';
+      const purchaseInfoResult = await this.searchConnector.searchPurchaseInfo(searchQuery);
+      
+      // Build messages context
+      const messages = [];
+      if (context.conversationHistory && context.conversationHistory.length > 0) {
+        context.conversationHistory.forEach(msg => {
+          if (msg.agent === '구매봇') {
+            messages.push({ role: 'assistant', content: msg.content });
+          } else if (msg.role === 'user') {
+            messages.push({ role: 'user', content: msg.content });
+          } else if (msg.agent) {
+            messages.push({ role: 'user', content: `[${msg.agent}의 주장]: ${msg.content}` });
+          }
+        });
+      }
+      
+      if (userMessage) {
+        messages.push({ role: 'user', content: userMessage });
+      }
+
+      // Add search results as context
+      let contextInfo = '';
+      if (purchaseInfoResult.success && purchaseInfoResult.results.length > 0) {
+        contextInfo = '\n[구매 관련 정보]\n';
+        purchaseInfoResult.results.slice(0, 3).forEach(result => {
+          contextInfo += `- ${result.document.title}: ${result.document.description}\n`;
+        });
+      }
+
+      // Generate streaming response
+      const systemPrompt = this.getSystemPrompt(productInfo) + contextInfo;
+      
+      let fullContent = '';
+      const chunkHandler = (chunk) => {
+        fullContent += chunk;
+        if (onChunk) onChunk(chunk);
+      };
+      
+      const response = await this.generateStreamResponse(messages, systemPrompt, chunkHandler, 0.8);
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to generate streaming response');
+      }
+
+      return this.formatResponse(fullContent || response.content, {
+        productId,
+        searchResults: purchaseInfoResult.results ? purchaseInfoResult.results.length : 0
+      });
+    } catch (error) {
+      console.error('PurchaseAgent Stream Error:', error);
+      const fallbackResponse = '구매가 확실히 더 나은 선택이긴해. 한번 사면 평생 쓸 수 있으니까 말이긴해';
+      if (onChunk) onChunk(fallbackResponse);
+      return this.formatResponse(fallbackResponse, { error: error.message });
+    }
   }
 
   async generateRebuttal(context, opponentArgument) {

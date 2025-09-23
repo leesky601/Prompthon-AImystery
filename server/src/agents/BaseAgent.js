@@ -1,12 +1,23 @@
 import AzureOpenAIConnector from '../connectors/azureOpenAI.js';
+import ExaoneConnector from '../connectors/exaone.js';
 import AzureSearchConnector from '../connectors/azureSearch.js';
+import aiProvider from '../config/aiProvider.js';
 
 class BaseAgent {
   constructor(name, role) {
     this.name = name;
     this.role = role;
-    this.openAIConnector = new AzureOpenAIConnector();
+    
+    // Initialize AI connectors based on configuration
+    this.azureConnector = new AzureOpenAIConnector();
+    this.exaoneConnector = new ExaoneConnector();
     this.searchConnector = new AzureSearchConnector();
+    
+    // Set primary AI connector based on configuration
+    this.aiProvider = aiProvider.getProvider();
+    this.openAIConnector = this.aiProvider === 'exaone' ? this.exaoneConnector : this.azureConnector;
+    
+    console.log(`[${this.name}] Using AI provider: ${this.aiProvider}`);
   }
 
   // Natural summarizer: keep only complete sentences up to maxLen
@@ -128,14 +139,103 @@ class BaseAgent {
     return await this.searchConnector.searchProductInfo(query, filters);
   }
 
-  // Generate response using Azure OpenAI
+  // Generate response using configured AI provider
   async generateResponse(messages, systemPrompt, temperature = 0.7) {
     const fullSystemPrompt = this.getBaseSystemPrompt() + '\n\n' + systemPrompt;
-    return await this.openAIConnector.generateResponse(
+    
+    // Try primary AI provider
+    let response = await this.openAIConnector.generateResponse(
       messages,
       fullSystemPrompt,
       temperature
     );
+    
+    // If failed and fallback is enabled, try fallback provider
+    if (!response.success && aiProvider.isFallbackEnabled() && this.aiProvider === 'exaone') {
+      console.warn(`[${this.name}] Exaone failed, falling back to Azure OpenAI`);
+      response = await this.azureConnector.generateResponse(
+        messages,
+        fullSystemPrompt,
+        temperature
+      );
+    }
+    
+    return response;
+  }
+  
+  // Generate response with Azure Search integration
+  async generateResponseWithSearch(messages, systemPrompt, productId = null, temperature = 0.7) {
+    const fullSystemPrompt = this.getBaseSystemPrompt() + '\n\n' + systemPrompt;
+    
+    // Search for relevant product information if productId is provided
+    let searchResults = [];
+    if (productId) {
+      const searchResponse = await this.searchProductInfo('*', productId);
+      if (searchResponse.success) {
+        searchResults = searchResponse.results;
+      }
+    }
+    
+    // Use Exaone with search integration if available
+    if (this.aiProvider === 'exaone' && this.exaoneConnector.isAvailable()) {
+      const response = await this.exaoneConnector.generateResponseWithSearch(
+        messages,
+        fullSystemPrompt,
+        searchResults,
+        temperature
+      );
+      
+      // Fallback to Azure if Exaone fails
+      if (!response.success && aiProvider.isFallbackEnabled()) {
+        console.warn(`[${this.name}] Exaone failed, falling back to Azure OpenAI`);
+        return await this.azureConnector.generateResponse(
+          messages,
+          fullSystemPrompt,
+          temperature
+        );
+      }
+      
+      return response;
+    }
+    
+    // Default to regular generation without search integration
+    return await this.generateResponse(messages, systemPrompt, temperature);
+  }
+  
+  // Generate streaming response using configured AI provider
+  async generateStreamResponse(messages, systemPrompt, onChunk, temperature = 0.7) {
+    const fullSystemPrompt = this.getBaseSystemPrompt() + '\n\n' + systemPrompt;
+    
+    // Only Exaone supports streaming for now
+    if (this.aiProvider === 'exaone' && this.exaoneConnector.isAvailable() && aiProvider.isStreamingEnabled()) {
+      try {
+        return await this.exaoneConnector.generateStreamResponse(
+          messages,
+          fullSystemPrompt,
+          onChunk,
+          temperature
+        );
+      } catch (error) {
+        console.error(`[${this.name}] Stream generation failed:`, error);
+        // Fallback to non-streaming response
+        if (aiProvider.isFallbackEnabled()) {
+          console.warn(`[${this.name}] Falling back to non-streaming response`);
+          const response = await this.generateResponse(messages, systemPrompt, temperature);
+          if (response.success && onChunk) {
+            onChunk(response.content);
+          }
+          return response;
+        }
+        throw error;
+      }
+    }
+    
+    // Fallback to non-streaming response
+    const response = await this.generateResponse(messages, systemPrompt, temperature);
+    if (response.success && onChunk) {
+      onChunk(response.content);
+    }
+    return response;
   }
 
   // Abstract method to be implemented by child classes

@@ -2,6 +2,7 @@ import PurchaseAgent from '../agents/PurchaseAgent.js';
 import SubscriptionAgent from '../agents/SubscriptionAgent.js';
 import ModeratorAgent from '../agents/ModeratorAgent.js';
 import AzureStorageConnector from '../connectors/azureStorage.js';
+import aiProvider from '../config/aiProvider.js';
 import { v4 as uuidv4 } from 'uuid';
 
 class AgentOrchestrator {
@@ -378,66 +379,171 @@ class AgentOrchestrator {
       session.debateTurnCounter++;
 
       const isOddTurn = session.debateTurnCounter % 2 === 1;
+      const useExaoneStreaming = aiProvider.getProvider() === 'exaone' && aiProvider.isStreamingEnabled();
 
       if (isOddTurn) {
         // Odd turns: Purchase → Subscription (each can include rebuttal)
         
         // Turn 1: Purchase agent responds to user input (can include rebuttal)
-        const purchaseResponse = await this.purchaseAgent.processMessage(
-          context,
-          userMessage
-        );
-        session.conversationHistory.push(purchaseResponse);
-        
-        res.write(`data: ${JSON.stringify({
-          type: 'message',
-          data: purchaseResponse
-        })}\n\n`);
+        if (useExaoneStreaming) {
+          // Use streaming for Exaone
+          let purchaseContent = '';
+          const purchaseChunkHandler = (chunk) => {
+            purchaseContent += chunk;
+            res.write(`data: ${JSON.stringify({
+              type: 'stream',
+              agent: '구매봇',
+              content: chunk
+            })}\n\n`);
+          };
+          
+          const purchaseResponse = await this.purchaseAgent.processMessageStream(
+            context,
+            userMessage,
+            purchaseChunkHandler
+          );
+          session.conversationHistory.push(purchaseResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: purchaseResponse
+          })}\n\n`);
+        } else {
+          // Use regular non-streaming response
+          const purchaseResponse = await this.purchaseAgent.processMessage(
+            context,
+            userMessage
+          );
+          session.conversationHistory.push(purchaseResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: purchaseResponse
+          })}\n\n`);
+        }
 
         // Wait 2 seconds before subscription agent
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Turn 2: Subscription agent responds to user input (can include rebuttal)
-        const subscriptionResponse = await this.subscriptionAgent.processMessage(
-          context,
-          userMessage
-        );
-        session.conversationHistory.push(subscriptionResponse);
-        
-        res.write(`data: ${JSON.stringify({
-          type: 'message',
-          data: subscriptionResponse
-        })}\n\n`);
+        if (useExaoneStreaming) {
+          // Use streaming for Exaone
+          let subscriptionContent = '';
+          const subscriptionChunkHandler = (chunk) => {
+            subscriptionContent += chunk;
+            res.write(`data: ${JSON.stringify({
+              type: 'stream',
+              agent: '구독봇',
+              content: chunk
+            })}\n\n`);
+          };
+          
+          const subscriptionResponse = await this.subscriptionAgent.processMessageStream(
+            context,
+            userMessage,
+            subscriptionChunkHandler
+          );
+          session.conversationHistory.push(subscriptionResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: subscriptionResponse
+          })}\n\n`);
+        } else {
+          // Use regular non-streaming response
+          const subscriptionResponse = await this.subscriptionAgent.processMessage(
+            context,
+            userMessage
+          );
+          session.conversationHistory.push(subscriptionResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: subscriptionResponse
+          })}\n\n`);
+        }
 
       } else {
         // Even turns: Subscription → Purchase (each can include rebuttal)
         
         // Turn 1: Subscription agent responds to user input (can include rebuttal)
-        const subscriptionResponse = await this.subscriptionAgent.processMessage(
-          context,
-          userMessage
-        );
-        session.conversationHistory.push(subscriptionResponse);
-        
-        res.write(`data: ${JSON.stringify({
-          type: 'message',
-          data: subscriptionResponse
-        })}\n\n`);
+        if (useExaoneStreaming) {
+          // Use streaming for Exaone
+          let subscriptionContent = '';
+          const subscriptionChunkHandler = (chunk) => {
+            subscriptionContent += chunk;
+            res.write(`data: ${JSON.stringify({
+              type: 'stream',
+              agent: '구독봇',
+              content: chunk
+            })}\n\n`);
+          };
+          
+          const subscriptionResponse = await this.subscriptionAgent.processMessageStream(
+            context,
+            userMessage,
+            subscriptionChunkHandler
+          );
+          session.conversationHistory.push(subscriptionResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: subscriptionResponse
+          })}\n\n`);
+        } else {
+          // Use regular non-streaming response
+          const subscriptionResponse = await this.subscriptionAgent.processMessage(
+            context,
+            userMessage
+          );
+          session.conversationHistory.push(subscriptionResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: subscriptionResponse
+          })}\n\n`);
+        }
 
         // Wait 2 seconds before purchase agent
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Turn 2: Purchase agent responds to user input (can include rebuttal)
-        const purchaseResponse = await this.purchaseAgent.processMessage(
-          context,
-          userMessage
-        );
-        session.conversationHistory.push(purchaseResponse);
-        
-        res.write(`data: ${JSON.stringify({
-          type: 'message',
-          data: purchaseResponse
-        })}\n\n`);
+        if (useExaoneStreaming) {
+          // Use streaming for Exaone
+          let purchaseContent = '';
+          const purchaseChunkHandler = (chunk) => {
+            purchaseContent += chunk;
+            res.write(`data: ${JSON.stringify({
+              type: 'stream',
+              agent: '구매봇',
+              content: chunk
+            })}\n\n`);
+          };
+          
+          const purchaseResponse = await this.purchaseAgent.processMessageStream(
+            context,
+            userMessage,
+            purchaseChunkHandler
+          );
+          session.conversationHistory.push(purchaseResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: purchaseResponse
+          })}\n\n`);
+        } else {
+          // Use regular non-streaming response
+          const purchaseResponse = await this.purchaseAgent.processMessage(
+            context,
+            userMessage
+          );
+          session.conversationHistory.push(purchaseResponse);
+          
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: purchaseResponse
+          })}\n\n`);
+        }
       }
 
       // Wait 2 seconds before moderator
