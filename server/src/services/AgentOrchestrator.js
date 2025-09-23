@@ -276,16 +276,43 @@ class AgentOrchestrator {
       let response;
       console.log(`[STREAM] Processing message: "${message}", type: "${messageType}", session state: "${session.state}"`);
       
+      const useExaoneStreaming = aiProvider.getProvider() === 'exaone' && aiProvider.isStreamingEnabled();
+
       if (messageType === 'start') {
         response = await this.startInitialDebateStream(session, res);
       } else if (messageType === 'conclusion') {
         console.log(`[STREAM] Generating conclusion for session: ${sessionId}`);
-        response = await this.generateConclusion(session);
+        if (useExaoneStreaming) {
+          // Stream conclusion via moderator
+          const context = {
+            productId: session.productId,
+            conversationHistory: session.conversationHistory,
+            userData: session.userData
+          };
+          let conclusionMessage = null;
+          const chunkHandler = (chunk) => {
+            res.write(`data: ${JSON.stringify({
+              type: 'stream',
+              agent: '안내봇',
+              content: chunk
+            })}\n\n`);
+          };
+          conclusionMessage = await this.moderatorAgent.generateConclusionStream(context, chunkHandler);
+          session.conversationHistory.push(conclusionMessage);
+          // 최종 결론 메시지 송신(병합용)
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: conclusionMessage
+          })}\n\n`);
+          response = { success: true, message: conclusionMessage, state: 'conclusion', conversationEnded: true };
+        } else {
+          response = await this.generateConclusion(session);
+          res.write(`data: ${JSON.stringify({
+            type: 'message',
+            data: response.message
+          })}\n\n`);
+        }
         session.state = 'conclusion'; // 세션 상태 업데이트
-        res.write(`data: ${JSON.stringify({
-          type: 'message',
-          data: response.message
-        })}\n\n`);
       } else {
         response = await this.handleOngoingDebateStream(session, message, res);
       }
@@ -300,7 +327,7 @@ class AgentOrchestrator {
 
       res.write(`data: ${JSON.stringify({
         type: 'end',
-        state: response.state || 'ongoing_debate'
+        state: response?.state || 'ongoing_debate'
       })}\n\n`);
       res.end();
 
@@ -317,51 +344,84 @@ class AgentOrchestrator {
   // Start initial debate with streaming
   async startInitialDebateStream(session, res) {
     try {
-      // Generate purchase agent's initial argument
-      const purchaseArgument = await this.purchaseAgent.generateInitialArgument(
-        session.productId
-      );
-      session.conversationHistory.push(purchaseArgument);
-      
-      res.write(`data: ${JSON.stringify({
-        type: 'message',
-        data: purchaseArgument
-      })}\n\n`);
+      const useExaoneStreaming = aiProvider.getProvider() === 'exaone' && aiProvider.isStreamingEnabled();
 
-      // Wait 4 seconds before next bot
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      if (useExaoneStreaming) {
+        // Purchase initial argument (stream)
+        const purchaseResponse = await this.purchaseAgent.processMessageStream(
+          { productId: session.productId, conversationHistory: session.conversationHistory, userData: session.userData },
+          '제품 구매의 핵심 장점을 정확히 2가지만 제시하면서 구매를 권유하세요. 3가지 이상 제시하지 마세요.',
+          (chunk) => {
+            res.write(`data: ${JSON.stringify({ type: 'stream', agent: '구매봇', content: chunk })}\n\n`);
+          }
+        );
+        session.conversationHistory.push(purchaseResponse);
+        // 구매봇 최종 메시지 송신(병합용)
+        res.write(`data: ${JSON.stringify({ type: 'message', data: purchaseResponse })}\n\n`);
 
-      // Generate subscription agent's initial argument
-      const subscriptionArgument = await this.subscriptionAgent.generateInitialArgument(
-        session.productId
-      );
-      session.conversationHistory.push(subscriptionArgument);
-      
-      res.write(`data: ${JSON.stringify({
-        type: 'message',
-        data: subscriptionArgument
-      })}\n\n`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Wait 4 seconds before moderator
-      await new Promise(resolve => setTimeout(resolve, 2500));
+        // Subscription initial argument (stream)
+        const subscriptionResponse = await this.subscriptionAgent.processMessageStream(
+          { productId: session.productId, conversationHistory: session.conversationHistory, userData: session.userData },
+          '제품 구독의 핵심 장점을 정확히 2가지만 제시하면서 구독을 권유하세요. 3가지 이상 제시하지 마세요. 케어 서비스의 가치도 강조하세요.',
+          (chunk) => {
+            res.write(`data: ${JSON.stringify({ type: 'stream', agent: '구독봇', content: chunk })}\n\n`);
+          }
+        );
+        session.conversationHistory.push(subscriptionResponse);
+        // 구독봇 최종 메시지 송신(병합용)
+        res.write(`data: ${JSON.stringify({ type: 'message', data: subscriptionResponse })}\n\n`);
 
-      // Generate moderator's summary and question
-      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
-        productId: session.productId,
-        conversationHistory: session.conversationHistory,
-        sessionId: session.sessionId
-      });
-      session.conversationHistory.push(moderatorSummary);
-      
-      res.write(`data: ${JSON.stringify({
-        type: 'message',
-        data: moderatorSummary
-      })}\n\n`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-      return {
-        success: true,
-        state: 'ongoing_debate'
-      };
+        // Moderator summary/question (stream)
+        const moderatorResponse = await this.moderatorAgent.summarizeAndQuestionStream({
+          productId: session.productId,
+          conversationHistory: session.conversationHistory,
+          sessionId: session.sessionId
+        }, (chunk) => {
+          res.write(`data: ${JSON.stringify({ type: 'stream', agent: '안내봇', content: chunk })}\n\n`);
+        });
+        session.conversationHistory.push(moderatorResponse);
+        // 안내봇 최종 메시지 송신(병합용, quickResponses 포함)
+        res.write(`data: ${JSON.stringify({ type: 'message', data: moderatorResponse })}\n\n`);
+
+        return {
+          success: true,
+          state: 'ongoing_debate'
+        };
+      } else {
+        // Fallback: non-streaming messages
+        const purchaseArgument = await this.purchaseAgent.generateInitialArgument(
+          session.productId
+        );
+        session.conversationHistory.push(purchaseArgument);
+        res.write(`data: ${JSON.stringify({ type: 'message', data: purchaseArgument })}\n\n`);
+
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        const subscriptionArgument = await this.subscriptionAgent.generateInitialArgument(
+          session.productId
+        );
+        session.conversationHistory.push(subscriptionArgument);
+        res.write(`data: ${JSON.stringify({ type: 'message', data: subscriptionArgument })}\n\n`);
+
+        await new Promise(resolve => setTimeout(resolve, 2500));
+
+        const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
+          productId: session.productId,
+          conversationHistory: session.conversationHistory,
+          sessionId: session.sessionId
+        });
+        session.conversationHistory.push(moderatorSummary);
+        res.write(`data: ${JSON.stringify({ type: 'message', data: moderatorSummary })}\n\n`);
+
+        return {
+          success: true,
+          state: 'ongoing_debate'
+        };
+      }
     } catch (error) {
       console.error('Initial debate stream error:', error);
       throw error;
@@ -408,11 +468,8 @@ class AgentOrchestrator {
             purchaseChunkHandler
           );
           session.conversationHistory.push(purchaseResponse);
-          
-          res.write(`data: ${JSON.stringify({
-            type: 'message',
-            data: purchaseResponse
-          })}\n\n`);
+          // 구매봇 최종 메시지 송신(병합용)
+          res.write(`data: ${JSON.stringify({ type: 'message', data: purchaseResponse })}\n\n`);
         } else {
           // Use regular non-streaming response
           const purchaseResponse = await this.purchaseAgent.processMessage(
@@ -449,11 +506,8 @@ class AgentOrchestrator {
             subscriptionChunkHandler
           );
           session.conversationHistory.push(subscriptionResponse);
-          
-          res.write(`data: ${JSON.stringify({
-            type: 'message',
-            data: subscriptionResponse
-          })}\n\n`);
+          // 구독봇 최종 메시지 송신(병합용)
+          res.write(`data: ${JSON.stringify({ type: 'message', data: subscriptionResponse })}\n\n`);
         } else {
           // Use regular non-streaming response
           const subscriptionResponse = await this.subscriptionAgent.processMessage(
@@ -490,11 +544,8 @@ class AgentOrchestrator {
             subscriptionChunkHandler
           );
           session.conversationHistory.push(subscriptionResponse);
-          
-          res.write(`data: ${JSON.stringify({
-            type: 'message',
-            data: subscriptionResponse
-          })}\n\n`);
+          // 구독봇 최종 메시지 송신(병합용)
+          res.write(`data: ${JSON.stringify({ type: 'message', data: subscriptionResponse })}\n\n`);
         } else {
           // Use regular non-streaming response
           const subscriptionResponse = await this.subscriptionAgent.processMessage(
@@ -531,11 +582,8 @@ class AgentOrchestrator {
             purchaseChunkHandler
           );
           session.conversationHistory.push(purchaseResponse);
-          
-          res.write(`data: ${JSON.stringify({
-            type: 'message',
-            data: purchaseResponse
-          })}\n\n`);
+          // 구매봇 최종 메시지 송신(병합용)
+          res.write(`data: ${JSON.stringify({ type: 'message', data: purchaseResponse })}\n\n`);
         } else {
           // Use regular non-streaming response
           const purchaseResponse = await this.purchaseAgent.processMessage(
@@ -554,17 +602,25 @@ class AgentOrchestrator {
       // Wait 2 seconds before moderator
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Moderator summarizes and asks next question
-      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
-        ...context,
-        sessionId: session.sessionId
-      });
-      session.conversationHistory.push(moderatorSummary);
-      
-      res.write(`data: ${JSON.stringify({
-        type: 'message',
-        data: moderatorSummary
-      })}\n\n`);
+      // Moderator summarizes and asks next question (stream if available)
+      if (useExaoneStreaming) {
+        const moderatorResponse = await this.moderatorAgent.summarizeAndQuestionStream({
+          ...context,
+          sessionId: session.sessionId
+        }, (chunk) => {
+          res.write(`data: ${JSON.stringify({ type: 'stream', agent: '안내봇', content: chunk })}\n\n`);
+        });
+        session.conversationHistory.push(moderatorResponse);
+        // 안내봇 최종 메시지 송신(병합용, quickResponses 포함)
+        res.write(`data: ${JSON.stringify({ type: 'message', data: moderatorResponse })}\n\n`);
+      } else {
+        const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
+          ...context,
+          sessionId: session.sessionId
+        });
+        session.conversationHistory.push(moderatorSummary);
+        res.write(`data: ${JSON.stringify({ type: 'message', data: moderatorSummary })}\n\n`);
+      }
 
       return {
         success: true,

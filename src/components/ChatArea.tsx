@@ -55,9 +55,12 @@ const highlightKeywords = (content: string) => {
   ];
   
   let result: (string | JSX.Element)[] = [content];
+  // 배열 내 형제 요소 간 key 중복을 방지하기 위한 고유 키 카운터
+  let uniqueKeyCounter = 0;
   
   // 키워드를 길이 순으로 정렬 (긴 키워드부터 처리하여 중복 매칭 방지)
-  const sortedKeywords = keywords.sort((a, b) => b.length - a.length);
+  // 원본 배열 변형 방지를 위해 복사본 정렬
+  const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length);
   
   sortedKeywords.forEach(keyword => {
     const newResult: (string | JSX.Element)[] = [];
@@ -67,10 +70,12 @@ const highlightKeywords = (content: string) => {
         // 키워드에 특수문자가 있을 수 있으므로 이스케이프 처리
         const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const parts = item.split(new RegExp(`(${escapedKeyword})`, 'gi'));
-        parts.forEach((part, index) => {
+        parts.forEach((part) => {
           if (part.toLowerCase() === keyword.toLowerCase()) {
+            // 전역 카운터를 사용해 형제들 간 key를 항상 고유하게 유지
+            const strongKey = `kw-${uniqueKeyCounter++}`;
             newResult.push(
-              <strong key={`${keyword}-${index}`} className="font-bold text-yellow-200">
+              <strong key={strongKey} className="font-bold text-yellow-200">
                 {part}
               </strong>
             );

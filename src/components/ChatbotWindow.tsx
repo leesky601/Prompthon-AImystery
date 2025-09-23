@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import productsData from '../data/products.json';
 import detailedProductsData from '../data/detailedProducts.json';
@@ -116,14 +116,19 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
     }
   }, [productId]);
 
-  // Auto scroll to bottom when new messages arrive - always stay at bottom
-  useEffect(() => {
-    if (messagesContainerRef.current && messages.length > 0) {
-      const container = messagesContainerRef.current;
-      // 항상 맨 아래로 스크롤 (부드럽지 않게 즉시)
+  // 스트리밍 중에도 항상 하단 고정 (페인트 전에 적용)
+  useLayoutEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const id = requestAnimationFrame(() => {
       container.scrollTop = container.scrollHeight;
-      
-      // 새로운 메시지가 추가될 때 카카오톡 음악 재생
+    });
+    return () => cancelAnimationFrame(id);
+  }, [messages, isTyping, isInitializing]);
+
+  // 새로운 메시지 추가 시 사운드만 재생
+  useEffect(() => {
+    if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage) {
         playKakaoSound();
@@ -257,7 +262,20 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                   const data = JSON.parse(jsonStr);
                   
                   if (data.type === 'message') {
-                    setMessages(prev => [...prev, data.data]);
+                    // 최종 메시지를 스트림 누적 메시지와 병합(중복 방지)
+                    setMessages(prev => {
+                      const lastMessage = prev[prev.length - 1];
+                      if (lastMessage && lastMessage.agent === data.data.agent && lastMessage.role === 'assistant') {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = {
+                          ...lastMessage,
+                          content: data.data.content || lastMessage.content,
+                          quickResponses: data.data.quickResponses ?? lastMessage.quickResponses
+                        };
+                        return updated;
+                      }
+                      return [...prev, data.data];
+                    });
                     setTypingAgent(data.data.agent);
                   } else if (data.type === 'stream') {
                     // Handle streaming chunks
@@ -388,7 +406,20 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                   const data = JSON.parse(jsonStr);
                   
                   if (data.type === 'message') {
-                    setMessages(prev => [...prev, data.data]);
+                    // 최종 메시지를 스트림 누적 메시지와 병합(중복 방지)
+                    setMessages(prev => {
+                      const lastMessage = prev[prev.length - 1];
+                      if (lastMessage && lastMessage.agent === data.data.agent && lastMessage.role === 'assistant') {
+                        const updated = [...prev];
+                        updated[updated.length - 1] = {
+                          ...lastMessage,
+                          content: data.data.content || lastMessage.content,
+                          quickResponses: data.data.quickResponses ?? lastMessage.quickResponses
+                        };
+                        return updated;
+                      }
+                      return [...prev, data.data];
+                    });
                     setTypingAgent(data.data.agent);
                   } else if (data.type === 'stream') {
                     // Handle streaming chunks

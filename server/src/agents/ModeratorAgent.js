@@ -247,6 +247,119 @@ class ModeratorAgent extends BaseAgent {
     }
   }
 
+  // Streaming version of summarizeAndQuestion
+  async summarizeAndQuestionStream(context, onChunk) {
+    try {
+      const conversationHistory = context.conversationHistory || [];
+      const productId = context.productId;
+      const sessionId = context.sessionId || 'default';
+
+      // Build summaryContext similar to non-streaming
+      let summaryContext = '';
+      if (conversationHistory.length > 0) {
+        summaryContext = '\n[전체 대화 내역]\n';
+        conversationHistory.slice(-10).forEach(msg => {
+          const speaker = msg.role === 'user' ? '사용자' : (msg.agent || '봇');
+          summaryContext += `${speaker}: ${msg.content}\n`;
+        });
+      }
+
+      const exploredTopics = this.analyzeExploredTopics(conversationHistory);
+
+      const messages = [{
+        role: 'user',
+        content: `다음 대화 내용을 기반으로 1문장 질문만 생성하세요.\n${summaryContext}\n[규칙]\n- 정확히 1문장으로만 질문\n- 중복 질문 금지\n- 새로운 관점 제시`
+      }];
+
+      const systemPrompt = this.getSystemPrompt() + `\n필수 규칙:\n- 질문만 1문장으로 출력\n- 중복 방지`;
+
+      let full = '';
+      const chunkHandler = (chunk) => {
+        full += chunk;
+        if (onChunk) onChunk(chunk);
+      };
+
+      const response = await this.generateStreamResponse(messages, systemPrompt, chunkHandler, 0.7);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to generate streaming summary');
+      }
+
+      // 최종 문장 정리
+      const content = (full || response.content || '애매하긴해').trim();
+
+      // 질문 히스토리 등록
+      this.addQuestionToHistory(sessionId, content);
+
+      // 빠른 응답 생성 (비스트리밍)
+      const quickResponses = await this.generateQuickResponses(
+        conversationHistory,
+        exploredTopics,
+        [],
+        content
+      );
+
+      return this.formatResponse(content, {
+        type: 'summary_question',
+        quickResponses: [
+          ...quickResponses,
+          '이제 결론을 내줘'
+        ]
+      });
+    } catch (error) {
+      console.error('ModeratorAgent Stream Summary Error:', error);
+      const fallback = '지금까지 얘기 중에 뭐가 더 중요하긴해?';
+      if (onChunk) onChunk(fallback);
+      return this.formatResponse(fallback, {
+        type: 'summary_question',
+        quickResponses: ['초기 비용이 부담스러워', '장기적으로 경제적인 게 중요해', '이제 결론을 내줘']
+      });
+    }
+  }
+
+  // Streaming version of conclusion
+  async generateConclusionStream(context, onChunk) {
+    try {
+      const conversationHistory = context.conversationHistory || [];
+      let fullConversation = '\n[전체 대화 내용]\n';
+      conversationHistory.forEach(msg => {
+        if (msg.role === 'user') {
+          fullConversation += `사용자: ${msg.content}\n`;
+        } else if (msg.agent) {
+          fullConversation += `${msg.agent}: ${msg.content}\n`;
+        }
+      });
+
+      const messages = [{
+        role: 'user',
+        content: `다음 토론 내용을 바탕으로 결론만 생성하세요:\n${fullConversation}\n[형식]\n[최종 결론]: (구매|구독)\n[적합도]: 구매 XX%, 구독 YY%\n[핵심 근거 3줄]\n[다음 단계 제안 1줄]`
+      }];
+
+      const systemPrompt = this.getSystemPrompt() + `\n- 결론만 출력`;
+
+      let full = '';
+      const chunkHandler = (chunk) => {
+        full += chunk;
+        if (onChunk) onChunk(chunk);
+      };
+
+      const response = await this.generateStreamResponse(messages, systemPrompt, chunkHandler, 0.4);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to generate streaming conclusion');
+      }
+
+      const content = (full || response.content || '').trim();
+      return this.formatResponse(content || '[최종 결론]: 구매', {
+        type: 'conclusion',
+        conversationEnded: true
+      });
+    } catch (error) {
+      console.error('ModeratorAgent Stream Conclusion Error:', error);
+      const fallback = '[최종 결론]: 구매\n[적합도]: 구매 50%, 구독 50%\n[핵심 근거 3줄]:\n- 기본 추천\n- 구매 시 소유권 확보 및 장기 경제성\n- 안정적인 사용 환경 제공\n[다음 단계 제안 1줄]: 구매 옵션을 선택하고 상담원 연결을 진행하긴해';
+      if (onChunk) onChunk(fallback);
+      return this.formatResponse(fallback, { type: 'conclusion', conversationEnded: true });
+    }
+  }
+
   async generateConclusion(context) {
     try {
       const conversationHistory = context.conversationHistory || [];
