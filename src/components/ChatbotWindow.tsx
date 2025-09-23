@@ -259,6 +259,29 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                   if (data.type === 'message') {
                     setMessages(prev => [...prev, data.data]);
                     setTypingAgent(data.data.agent);
+                  } else if (data.type === 'stream') {
+                    // Handle streaming chunks
+                    setMessages(prev => {
+                      const lastMessage = prev[prev.length - 1];
+                      // If the last message is from the same agent, append to it
+                      if (lastMessage && lastMessage.agent === data.agent) {
+                        const updatedMessages = [...prev];
+                        updatedMessages[updatedMessages.length - 1] = {
+                          ...lastMessage,
+                          content: lastMessage.content + data.content
+                        };
+                        return updatedMessages;
+                      } else {
+                        // Create new message for this agent
+                        return [...prev, {
+                          agent: data.agent,
+                          role: 'assistant',
+                          content: data.content,
+                          timestamp: new Date().toISOString()
+                        }];
+                      }
+                    });
+                    setTypingAgent(data.agent);
                   } else if (data.type === 'end') {
                     setConversationState(data.state || conversationState);
                     setIsTyping(false);
@@ -367,6 +390,29 @@ const ChatbotWindow: React.FC<ChatbotWindowProps> = ({ productId, isOpen, onClos
                   if (data.type === 'message') {
                     setMessages(prev => [...prev, data.data]);
                     setTypingAgent(data.data.agent);
+                  } else if (data.type === 'stream') {
+                    // Handle streaming chunks
+                    setMessages(prev => {
+                      const lastMessage = prev[prev.length - 1];
+                      // If the last message is from the same agent, append to it
+                      if (lastMessage && lastMessage.agent === data.agent) {
+                        const updatedMessages = [...prev];
+                        updatedMessages[updatedMessages.length - 1] = {
+                          ...lastMessage,
+                          content: lastMessage.content + data.content
+                        };
+                        return updatedMessages;
+                      } else {
+                        // Create new message for this agent
+                        return [...prev, {
+                          agent: data.agent,
+                          role: 'assistant',
+                          content: data.content,
+                          timestamp: new Date().toISOString()
+                        }];
+                      }
+                    });
+                    setTypingAgent(data.agent);
                   } else if (data.type === 'end') {
                     setConversationState(data.state || conversationState);
                     setIsTyping(false);

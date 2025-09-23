@@ -187,7 +187,8 @@ class AgentOrchestrator {
       // Generate moderator's summary and question (short)
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
         productId: session.productId,
-        conversationHistory: session.conversationHistory
+        conversationHistory: session.conversationHistory,
+        sessionId: session.sessionId
       });
       session.conversationHistory.push(moderatorSummary);
       responses.push(moderatorSummary);
@@ -233,7 +234,10 @@ class AgentOrchestrator {
       responses.push(subscriptionRebuttal);
 
       // Moderator summarizes and asks next question
-      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion(context);
+      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
+        ...context,
+        sessionId: session.sessionId
+      });
       session.conversationHistory.push(moderatorSummary);
       responses.push(moderatorSummary);
 
@@ -344,7 +348,8 @@ class AgentOrchestrator {
       // Generate moderator's summary and question
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
         productId: session.productId,
-        conversationHistory: session.conversationHistory
+        conversationHistory: session.conversationHistory,
+        sessionId: session.sessionId
       });
       session.conversationHistory.push(moderatorSummary);
       
@@ -550,7 +555,10 @@ class AgentOrchestrator {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Moderator summarizes and asks next question
-      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion(context);
+      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
+        ...context,
+        sessionId: session.sessionId
+      });
       session.conversationHistory.push(moderatorSummary);
       
       res.write(`data: ${JSON.stringify({

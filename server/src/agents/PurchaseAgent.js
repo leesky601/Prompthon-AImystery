@@ -33,9 +33,10 @@ class PurchaseAgent extends BaseAgent {
 - 제품 설명: ${productInfo.description}
 `;
       // Add subscription prices for comparison
-      if (productInfo.subscription_price_6y) {
-        const totalSubscriptionCost = productInfo.subscription_price_6y * 72; // 6년 총액
-        prompt += `- 6년 구독 총액: ${totalSubscriptionCost}원 (월 ${productInfo.subscription_price_6y}원 x 72개월)\n`;
+      const price6y = productInfo.subscription_price_6year || productInfo.subscription_price_6y;
+      if (price6y) {
+        const totalSubscriptionCost = price6y * 72; // 6년 총액
+        prompt += `- 6년 구독 총액: ${totalSubscriptionCost}원 (월 ${price6y}원 x 72개월)\n`;
         prompt += `- 구매 대비 구독 추가비용: ${totalSubscriptionCost - productInfo.purchase_price}원\n`;
       }
     }

@@ -3,6 +3,9 @@ import BaseAgent from './BaseAgent.js';
 class ModeratorAgent extends BaseAgent {
   constructor() {
     super('안내봇', 'moderator');
+    // 질문 히스토리를 세션별로 저장
+    this.questionHistory = new Map(); // sessionId -> Set of questions
+    this.maxQuestionHistory = 20; // 최대 20개의 질문 기억
   }
 
   getSystemPrompt() {
@@ -48,10 +51,31 @@ class ModeratorAgent extends BaseAgent {
     return this.formatResponse(response.content, { type: 'welcome', quickResponses: ['시작하자'] });
   }
 
+  // 세션별 질문 히스토리 관리
+  getSessionQuestions(sessionId) {
+    if (!this.questionHistory.has(sessionId)) {
+      this.questionHistory.set(sessionId, new Set());
+    }
+    return this.questionHistory.get(sessionId);
+  }
+  
+  addQuestionToHistory(sessionId, question) {
+    const questions = this.getSessionQuestions(sessionId);
+    questions.add(question);
+    
+    // 최대 개수 제한
+    if (questions.size > this.maxQuestionHistory) {
+      const questionsArray = Array.from(questions);
+      questions.clear();
+      questionsArray.slice(-this.maxQuestionHistory).forEach(q => questions.add(q));
+    }
+  }
+  
   async summarizeAndQuestion(context) {
     try {
       const conversationHistory = context.conversationHistory || [];
       const productId = context.productId;
+      const sessionId = context.sessionId || 'default'; // 세션 ID 가져오기
       
       // Get product info if available
       let productInfo = null;
@@ -101,6 +125,16 @@ class ModeratorAgent extends BaseAgent {
       const unansweredTopics = []; // AI가 직접 분석하므로 빈 배열로 설정
       const suggestedTopics = this.getSuggestedTopics(exploredTopics, unansweredTopics, conversationHistory);
       
+      // 이전에 했던 질문들 가져오기
+      const previousQuestions = this.getSessionQuestions(sessionId);
+      let previousQuestionsContext = '';
+      if (previousQuestions.size > 0) {
+        previousQuestionsContext = '\n[이미 했던 질문들 - 절대 반복하지 마세요]\n';
+        Array.from(previousQuestions).forEach(q => {
+          previousQuestionsContext += `- ${q}\n`;
+        });
+      }
+      
       // 사용자 응답 분석 추가
       const userResponses = conversationHistory.filter(msg => msg.role === 'user');
       let userContext = '';
@@ -131,9 +165,14 @@ class ModeratorAgent extends BaseAgent {
       
       const messages = [{
         role: 'user',
-        content: `다음 대화 내용을 기반으로 응답하세요: ${summaryContext}${userContext}
+        content: `다음 대화 내용을 기반으로 응답하세요: ${summaryContext}${userContext}${previousQuestionsContext}
         
 아직 다루지 않은 주제: ${suggestedTopics.join(', ')}
+
+[매우 중요] 중복 방지:
+- 위의 "이미 했던 질문들" 목록에 있는 질문과 유사한 질문을 절대 하지 마세요
+- 완전히 새로운 관점이나 주제에 대해 질문하세요
+- 사용자가 이미 답변한 주제들을 파악하고, 아직 답변하지 않은 주제에 대해 질문하세요
 
 [중요] 사용자 응답 분석:
 - 사용자가 이미 답변한 주제들을 파악하고, 아직 답변하지 않은 주제에 대해 질문하세요
@@ -141,7 +180,7 @@ class ModeratorAgent extends BaseAgent {
 - 중복 질문을 피하고 새로운 관점의 질문을 하세요
 
 필수 응답 형식:
-1. 사용자의 실제 응답을 고려하여 새로운 관점의 질문을 하세요
+1. 이전 질문과 완전히 다른 새로운 질문을 하세요
 2. 답변은 정확히 1문장으로만 하세요
 3. 사용자가 이미 답변한 내용과 중복되지 않도록 하세요
 4. 아직 답변하지 않은 주제에 대해 구체적으로 질문하세요
@@ -171,6 +210,11 @@ class ModeratorAgent extends BaseAgent {
       if (!response.content || response.content.trim() === '') {
         response.content = '애매하긴해';
       }
+      
+      // 생성된 질문을 히스토리에 추가
+      this.addQuestionToHistory(sessionId, response.content);
+      console.log(`[MODERATOR] Added question to history for session ${sessionId}: "${response.content}"`);
+      console.log(`[MODERATOR] Total questions in history: ${this.getSessionQuestions(sessionId).size}`);
 
       // Generate quick response options
       const quickResponses = await this.generateQuickResponses(
