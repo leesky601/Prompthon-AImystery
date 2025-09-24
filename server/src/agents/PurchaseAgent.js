@@ -38,6 +38,16 @@ class PurchaseAgent extends BaseAgent {
         prompt += `- 6년 구독 총액: ${totalSubscriptionCost}원 (월 ${productInfo.subscription_price_6y}원 x 72개월)\n`;
         prompt += `- 구매 대비 구독 추가비용: ${totalSubscriptionCost - productInfo.purchase_price}원\n`;
       }
+
+      // Add purchase benefits
+      if (productInfo.purchase_benefits && productInfo.purchase_benefits.length > 0) {
+        prompt += `
+[구매 장점]
+`;
+        productInfo.purchase_benefits.forEach((benefit, index) => {
+          prompt += `- ${benefit}\n`;
+        });
+      }
     }
 
     return prompt;

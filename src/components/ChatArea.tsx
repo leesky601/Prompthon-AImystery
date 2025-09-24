@@ -70,7 +70,7 @@ const highlightKeywords = (content: string) => {
         parts.forEach((part, index) => {
           if (part.toLowerCase() === keyword.toLowerCase()) {
             newResult.push(
-              <strong key={`${keyword}-${index}`} className="font-bold text-yellow-200">
+              <strong key={`${keyword}-${index}-${Math.random()}`} className="font-bold text-yellow-200">
                 {part}
               </strong>
             );
@@ -89,7 +89,7 @@ const highlightKeywords = (content: string) => {
   return result;
 };
 
-const parseConclusionMessage = (content: string) => {
+const parseConclusionMessage = (content: string, detailedProduct?: DetailedProductInfo | null) => {
   // 최종 결론 메시지를 파싱하여 구조화된 형태로 변환
   const conclusionMatch = content.match(/\[최종 결론\]:\s*([^[]+)/);
   const suitabilityMatch = content.match(/\[적합도\]:\s*([^[]+)/);
@@ -333,7 +333,7 @@ const ChatArea: React.FC<ChatAreaProps> = ({
                 }`}>
                   {message.agent === '안내봇' && (message.content.includes('최종 결론') || message.content.includes('[최종 결론]')) ? (
                     <div className="space-y-4">
-                      {parseConclusionMessage(message.content)}
+                      {parseConclusionMessage(message.content, detailedProduct)}
                     </div>
                   ) : message.role === 'user' ? (
                     <p className="whitespace-pre-wrap">{message.content}</p>
@@ -472,13 +472,13 @@ const ChatArea: React.FC<ChatAreaProps> = ({
             
             if (isOddTurn) {
               // 홀수 턴 (1, 3, 5...): 구독봇 → 구매봇 → 안내봇
-              if (botMessagesAfterUser.length === 0) return '구독봇';
-              if (botMessagesAfterUser.length === 1) return '구매봇';
+              if (botMessagesAfterUser.length === 0) return '구매봇';
+              if (botMessagesAfterUser.length === 1) return '구독봇';
               return '안내봇';
             } else {
               // 짝수 턴 (2, 4, 6...): 구매봇 → 구독봇 → 안내봇
-              if (botMessagesAfterUser.length === 0) return '구매봇';
-              if (botMessagesAfterUser.length === 1) return '구독봇';
+              if (botMessagesAfterUser.length === 0) return '구독봇';
+              if (botMessagesAfterUser.length === 1) return '구매봇';
               return '안내봇';
             }
           };

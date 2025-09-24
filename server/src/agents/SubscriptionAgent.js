@@ -29,10 +29,10 @@ class SubscriptionAgent extends BaseAgent {
       prompt += `
 [현재 제품 정보]
 - 제품명: ${productInfo.product_name}
-- 3년 구독료: ${productInfo.subscription_price_3y}원/월
-- 4년 구독료: ${productInfo.subscription_price_4y}원/월
-- 5년 구독료: ${productInfo.subscription_price_5y}원/월
-- 6년 구독료: ${productInfo.subscription_price_6y}원/월
+- 3년 구독료: ${productInfo.subscription_price_3year}원/월
+- 4년 구독료: ${productInfo.subscription_price_4year}원/월
+- 5년 구독료: ${productInfo.subscription_price_5year}원/월
+- 6년 구독료: ${productInfo.subscription_price_6year}원/월
 - 구독 혜택: ${productInfo.subscription_benefits}
 - 케어 서비스: ${productInfo.care_service_description}
 - 케어 빈도: ${productInfo.care_service_frequency}
@@ -113,8 +113,8 @@ class SubscriptionAgent extends BaseAgent {
       // Add product-specific info to context
       if (productInfo) {
         contextInfo += '\n[제품 구독 정보]\n';
-        if (productInfo.subscription_price_6y) {
-          contextInfo += `- 6년 구독 월 ${productInfo.subscription_price_6y}원\n`;
+        if (productInfo.subscription_price_6year) {
+          contextInfo += `- 6년 구독 월 ${productInfo.subscription_price_6year}원\n`;
         }
         if (productInfo.subscription_benefits) {
           contextInfo += `- 구독 혜택: ${productInfo.subscription_benefits}\n`;

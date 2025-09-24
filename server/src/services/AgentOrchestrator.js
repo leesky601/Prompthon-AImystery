@@ -365,6 +365,16 @@ class AgentOrchestrator {
   // Handle ongoing debate with streaming
   async handleOngoingDebateStream(session, userMessage, res) {
     try {
+      // Add user message to conversation history first
+      if (userMessage && userMessage.trim()) {
+        session.conversationHistory.push({
+          role: 'user',
+          agent: '사용자',
+          content: userMessage,
+          timestamp: new Date().toISOString()
+        });
+      }
+
       const context = {
         productId: session.productId,
         conversationHistory: session.conversationHistory,
