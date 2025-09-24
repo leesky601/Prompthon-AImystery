@@ -120,7 +120,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
       {/* Header */}
       <header className="w-full bg-white border-b sticky top-0 z-50">
         {/* Top bar */}

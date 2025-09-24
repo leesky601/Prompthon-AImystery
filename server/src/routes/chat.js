@@ -10,9 +10,8 @@ const orchestrator = new AgentOrchestrator();
 router.post('/init', async (req, res) => {
   try {
     const { productId, userData } = req.body;
-    
-    // Debug log to check received productId
-    logger.info(`Chat init received - productId: ${productId}, type: ${typeof productId}`);
+    console.log(`[CHAT_ROUTER] Initialize request - productId: "${productId}"`);
+    console.log(`[CHAT_ROUTER] Request body:`, req.body);
     
     const result = await orchestrator.initializeSession(productId, userData);
     
@@ -38,10 +37,49 @@ router.post('/init', async (req, res) => {
   }
 });
 
+// Send message to chatbot with streaming
+router.post('/message/stream', validateChatRequest, async (req, res) => {
+  try {
+    const { sessionId, message, messageType = 'text' } = req.body;
+    console.log(`[CHAT_ROUTER] Streaming message request - sessionId: "${sessionId}"`);
+    console.log(`[CHAT_ROUTER] Message: "${message}", Type: "${messageType}"`);
+    
+    // Validate session ID
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Session ID is required'
+      });
+    }
+
+    // Set SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control'
+    });
+
+    // Process message with streaming
+    await orchestrator.processMessageStream(sessionId, message, messageType, res);
+    
+  } catch (error) {
+    logger.error('Chat streaming error:', error);
+    res.write(`data: ${JSON.stringify({
+      type: 'error',
+      message: 'Failed to process message'
+    })}\n\n`);
+    res.end();
+  }
+});
+
 // Send message to chatbot
 router.post('/message', validateChatRequest, async (req, res) => {
   try {
     const { sessionId, message, messageType = 'text' } = req.body;
+    console.log(`[CHAT_ROUTER] Message request - sessionId: "${sessionId}"`);
+    console.log(`[CHAT_ROUTER] Message: "${message}", Type: "${messageType}"`);
     
     // Validate session ID
     if (!sessionId) {

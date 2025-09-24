@@ -12,6 +12,10 @@ class BaseAgent {
   // Natural summarizer: keep only complete sentences up to maxLen
   summarizeNaturally(raw, maxLen = 240) {
     if (!raw) return '';
+    // 강제로 "긴해" 말투를 바꾸는 부분 주석처리 - 원본 텍스트 그대로 반환
+    return String(raw).replace(/\s+/g, ' ').trim();
+    
+    /* 주석처리된 원래 코드 - 강제로 "긴해" 말투로 바꾸는 부분
     let text = String(raw).replace(/\s+/g, ' ').trim();
     if (text.length <= maxLen) return text;
 
@@ -55,10 +59,16 @@ class BaseAgent {
     const lastSpace = cut.lastIndexOf(' ');
     const safe = lastSpace > 0 ? cut.slice(0, lastSpace) : text.slice(0, maxLen);
     return safe.trim();
+    */
   }
 
   // Format response with agent metadata (with natural summarization)
   formatResponse(content, metadata = {}) {
+    // 빈 메시지나 에러로 인한 빈 응답 처리
+    if (!content || content.trim() === '') {
+      content = '애매하긴해';
+    }
+    
     const concise = this.summarizeNaturally(content, 260);
     return {
       agent: this.name,
@@ -98,6 +108,8 @@ class BaseAgent {
 - "구독이 더 경제적이긴해"
 - "케어 서비스까지 받을 수 있긴해"
 - "구독 할래말래?"
+- "도와줄거긴해"
+" "정리해줄거긴해"
 
 [잘못된 문장 끝 예시 - 절대 사용 금지]
 - 물음표 바로 뒤에 긴해 절대 사용 금지 (예시 : "시작할까요?긴해")
@@ -106,7 +118,7 @@ class BaseAgent {
 - ""맘에 들긴해."긴해" (X)
 - "선호긴해" (X)
 - "하긴해!하긴해" (X)
-- "도와줄게 긴해" (X)
+- "도와줄게 긴해" (X) -> "도와줄거긴해"
 `;
   }
 

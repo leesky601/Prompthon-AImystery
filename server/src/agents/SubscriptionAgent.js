@@ -21,6 +21,8 @@ class SubscriptionAgent extends BaseAgent {
 2. 구독 시 얻게 되는 지속적인 혜택 강조
 3. 케어 서비스와 AS의 편의성 부각
 4. 라이프스타일 변화에 따른 유연성 어필
+5. 하고싶은 말이 많아도 정확히 1문장으로만 제시
+6. 사용자 질문에 답하면서 상대방(구매봇) 주장에 대한 반박도 포함 가능
 `;
 
     if (productInfo) {
@@ -44,17 +46,28 @@ class SubscriptionAgent extends BaseAgent {
     try {
       // Get product information from context
       const productId = context.productId;
+      console.log(`[SUBSCRIPTION_AGENT] Processing message with productId: "${productId}"`);
+      console.log(`[SUBSCRIPTION_AGENT] User message: "${userMessage}"`);
+      
       let productInfo = null;
       
       if (productId) {
+        console.log(`[SUBSCRIPTION_AGENT] Fetching product info for ID: "${productId}"`);
         const productResult = await this.searchConnector.getProductById(productId);
+        console.log(`[SUBSCRIPTION_AGENT] Product result:`, productResult);
+        
         if (productResult.success) {
           productInfo = productResult.document;
+          console.log(`[SUBSCRIPTION_AGENT] Product info loaded:`, productInfo?.product_name);
+        } else {
+          console.log(`[SUBSCRIPTION_AGENT] Failed to load product info:`, productResult.error);
         }
+      } else {
+        console.log(`[SUBSCRIPTION_AGENT] No productId provided`);
       }
 
-      // Search for subscription benefits
-      const searchQuery = userMessage || '구독 장점 혜택 케어서비스';
+      // Search for subscription benefits (use safe query)
+      const searchQuery = '구독 장점 혜택 케어서비스';
       const subscriptionBenefitsResult = await this.searchConnector.searchSubscriptionBenefits(searchQuery);
       
       // Build context for response generation with full conversation history
@@ -113,10 +126,17 @@ class SubscriptionAgent extends BaseAgent {
 
       // Generate response
       const systemPrompt = this.getSystemPrompt(productInfo) + contextInfo;
+      console.log(`[SUBSCRIPTION_AGENT] Final system prompt: "${systemPrompt}"`);
+      console.log(`[SUBSCRIPTION_AGENT] Messages sent to AI:`, JSON.stringify(messages, null, 2));
       const response = await this.generateResponse(messages, systemPrompt, 0.8);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to generate response');
+      }
+
+      // 빈 응답 처리
+      if (!response.content || response.content.trim() === '') {
+        response.content = '애매하긴해';
       }
 
       return this.formatResponse(response.content, {
@@ -136,7 +156,8 @@ class SubscriptionAgent extends BaseAgent {
     const context = { productId, conversationHistory: [] };
     
     // Generate initial subscription argument
-    const initialPrompt = '제품 구독의 핵심 장점을 3가지 제시하면서 구독을 권유하세요. 케어 서비스의 가치도 강조하세요.';
+    const initialPrompt = '제품 구독의 핵심 장점을 정확히 2가지만 제시하면서 구독을 권유하세요. 3가지 이상 제시하지 마세요. 케어 서비스의 가치도 강조하세요.';
+    console.log(`[SUBSCRIPTION_AGENT] Initial prompt: "${initialPrompt}"`);
     return await this.processMessage(context, initialPrompt);
   }
 
@@ -145,7 +166,7 @@ class SubscriptionAgent extends BaseAgent {
     const rebuttalPrompt = `
 상대방 주장: ${opponentArgument}
 
-위 구매 주장에 대해 반박하고, 구독이 더 나은 이유를 데이터와 함께 제시하세요.
+위 구매 주장에 대해 반박하고, 구독이 더 나은 이유를 데이터와 함께 정확히 1문장으로만 제시하세요.
 초기 비용 부담과 유연성 측면에서 구독의 장점을 강조하세요.
 `;
     

@@ -16,6 +16,9 @@ class AgentOrchestrator {
   // Initialize a new conversation session
   async initializeSession(productId = null, userData = {}) {
     try {
+      console.log(`[AGENT_ORCHESTRATOR] Initializing session with productId: "${productId}"`);
+      console.log(`[AGENT_ORCHESTRATOR] UserData:`, userData);
+      
       const sessionId = uuidv4();
       const conversationId = uuidv4();
       
@@ -173,18 +176,12 @@ class AgentOrchestrator {
       session.conversationHistory.push(purchaseArgument);
       responses.push(purchaseArgument);
 
-      // Wait a moment before next bot to simulate turn-taking
-      await new Promise(r => setTimeout(r, 300));
-
       // Generate subscription agent's initial argument (independent)
       const subscriptionArgument = await this.subscriptionAgent.generateInitialArgument(
         session.productId
       );
       session.conversationHistory.push(subscriptionArgument);
       responses.push(subscriptionArgument);
-
-      // Small pause before moderator
-      await new Promise(r => setTimeout(r, 300));
 
       // Generate moderator's summary and question (short)
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
@@ -226,9 +223,6 @@ class AgentOrchestrator {
       session.conversationHistory.push(purchaseResponse);
       responses.push(purchaseResponse);
 
-      // Short delay between bots
-      await new Promise(r => setTimeout(r, 300));
-
       // Subscription agent provides counter-argument
       const subscriptionRebuttal = await this.subscriptionAgent.generateRebuttal(
         context,
@@ -236,9 +230,6 @@ class AgentOrchestrator {
       );
       session.conversationHistory.push(subscriptionRebuttal);
       responses.push(subscriptionRebuttal);
-
-      // Short delay before moderator
-      await new Promise(r => setTimeout(r, 300));
 
       // Moderator summarizes and asks next question
       const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion(context);
@@ -259,6 +250,218 @@ class AgentOrchestrator {
     }
   }
 
+  // Process message with streaming
+  async processMessageStream(sessionId, message, messageType, res) {
+    try {
+      const session = this.activeSessions.get(sessionId);
+      if (!session) {
+        res.write(`data: ${JSON.stringify({
+          type: 'error',
+          message: 'Session not found'
+        })}\n\n`);
+        res.end();
+        return;
+      }
+
+      // Update session
+      session.lastActivity = new Date();
+      session.turnCount++;
+      session.userData = { ...session.userData, ...{ timestamp: new Date().toISOString() } };
+
+      let response;
+      console.log(`[STREAM] Processing message: "${message}", type: "${messageType}", session state: "${session.state}"`);
+      
+      if (messageType === 'start') {
+        response = await this.startInitialDebateStream(session, res);
+      } else if (messageType === 'conclusion') {
+        console.log(`[STREAM] Generating conclusion for session: ${sessionId}`);
+        response = await this.generateConclusion(session);
+        session.state = 'conclusion'; // 세션 상태 업데이트
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: response.message
+        })}\n\n`);
+      } else {
+        response = await this.handleOngoingDebateStream(session, message, res);
+      }
+
+      // Save conversation periodically
+      if (session.turnCount % 5 === 0) {
+        await this.saveConversation(session);
+      }
+
+      // Update session in memory
+      this.activeSessions.set(sessionId, session);
+
+      res.write(`data: ${JSON.stringify({
+        type: 'end',
+        state: response.state || 'ongoing_debate'
+      })}\n\n`);
+      res.end();
+
+    } catch (error) {
+      console.error('Process message stream error:', error);
+      res.write(`data: ${JSON.stringify({
+        type: 'error',
+        message: error.message
+      })}\n\n`);
+      res.end();
+    }
+  }
+
+  // Start initial debate with streaming
+  async startInitialDebateStream(session, res) {
+    try {
+      // Generate purchase agent's initial argument
+      const purchaseArgument = await this.purchaseAgent.generateInitialArgument(
+        session.productId
+      );
+      session.conversationHistory.push(purchaseArgument);
+      
+      res.write(`data: ${JSON.stringify({
+        type: 'message',
+        data: purchaseArgument
+      })}\n\n`);
+
+      // Wait 4 seconds before next bot
+      await new Promise(resolve => setTimeout(resolve, 2500));
+
+      // Generate subscription agent's initial argument
+      const subscriptionArgument = await this.subscriptionAgent.generateInitialArgument(
+        session.productId
+      );
+      session.conversationHistory.push(subscriptionArgument);
+      
+      res.write(`data: ${JSON.stringify({
+        type: 'message',
+        data: subscriptionArgument
+      })}\n\n`);
+
+      // Wait 4 seconds before moderator
+      await new Promise(resolve => setTimeout(resolve, 2500));
+
+      // Generate moderator's summary and question
+      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion({
+        productId: session.productId,
+        conversationHistory: session.conversationHistory
+      });
+      session.conversationHistory.push(moderatorSummary);
+      
+      res.write(`data: ${JSON.stringify({
+        type: 'message',
+        data: moderatorSummary
+      })}\n\n`);
+
+      return {
+        success: true,
+        state: 'ongoing_debate'
+      };
+    } catch (error) {
+      console.error('Initial debate stream error:', error);
+      throw error;
+    }
+  }
+
+  // Handle ongoing debate with streaming
+  async handleOngoingDebateStream(session, userMessage, res) {
+    try {
+      const context = {
+        productId: session.productId,
+        conversationHistory: session.conversationHistory,
+        userData: session.userData
+      };
+
+      // Initialize debate turn counter if not exists
+      if (!session.debateTurnCounter) {
+        session.debateTurnCounter = 0;
+      }
+      session.debateTurnCounter++;
+
+      const isOddTurn = session.debateTurnCounter % 2 === 1;
+
+      if (isOddTurn) {
+        // 홀수 턴 (1, 3, 5...): 구독봇 → 구매봇 → 안내봇
+        
+        // Turn 1: Subscription agent responds to user input
+        const subscriptionResponse = await this.subscriptionAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(subscriptionResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: subscriptionResponse
+        })}\n\n`);
+
+        // Wait 2 seconds before purchase agent
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Turn 2: Purchase agent responds to user input
+        const purchaseResponse = await this.purchaseAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(purchaseResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: purchaseResponse
+        })}\n\n`);
+
+      } else {
+        // 짝수 턴 (2, 4, 6...): 구매봇 → 구독봇 → 안내봇
+        
+        // Turn 1: Purchase agent responds to user input
+        const purchaseResponse = await this.purchaseAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(purchaseResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: purchaseResponse
+        })}\n\n`);
+
+        // Wait 2 seconds before subscription agent
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Turn 2: Subscription agent responds to user input
+        const subscriptionResponse = await this.subscriptionAgent.processMessage(
+          context,
+          userMessage
+        );
+        session.conversationHistory.push(subscriptionResponse);
+        
+        res.write(`data: ${JSON.stringify({
+          type: 'message',
+          data: subscriptionResponse
+        })}\n\n`);
+      }
+
+      // Wait 2 seconds before moderator
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Moderator summarizes and asks next question
+      const moderatorSummary = await this.moderatorAgent.summarizeAndQuestion(context);
+      session.conversationHistory.push(moderatorSummary);
+      
+      res.write(`data: ${JSON.stringify({
+        type: 'message',
+        data: moderatorSummary
+      })}\n\n`);
+
+      return {
+        success: true,
+        state: 'ongoing_debate'
+      };
+    } catch (error) {
+      console.error('Ongoing debate stream error:', error);
+      throw error;
+    }
+  }
+
   // Generate final conclusion
   async generateConclusion(session) {
     try {
@@ -274,11 +477,16 @@ class AgentOrchestrator {
       // Save final conversation
       await this.saveConversation(session);
       
-      // Archive conversation to blob storage
-      await this.storageConnector.archiveConversation(
-        session.sessionId,
-        session.conversationHistory
-      );
+      // Archive conversation to blob storage (with error handling)
+      try {
+        await this.storageConnector.archiveConversation(
+          session.sessionId,
+          session.conversationHistory
+        );
+      } catch (archiveError) {
+        console.error('Archive conversation error:', archiveError);
+        // Continue execution even if archiving fails
+      }
 
       return {
         success: true,

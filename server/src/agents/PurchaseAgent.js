@@ -21,6 +21,8 @@ class PurchaseAgent extends BaseAgent {
 2. 구매 시 얻게 되는 실질적 혜택 강조
 3. 장기 사용 시 경제성 부각
 4. 소유의 심리적 만족감 어필
+5. 하고싶은 말이 많아도 정확히 1문장으로만 제시
+6. 사용자 질문에 답하면서 상대방(구독봇) 주장에 대한 반박도 포함 가능
 `;
 
     if (productInfo) {
@@ -45,17 +47,28 @@ class PurchaseAgent extends BaseAgent {
     try {
       // Get product information from context
       const productId = context.productId;
+      console.log(`[PURCHASE_AGENT] Processing message with productId: "${productId}"`);
+      console.log(`[PURCHASE_AGENT] User message: "${userMessage}"`);
+      
       let productInfo = null;
       
       if (productId) {
+        console.log(`[PURCHASE_AGENT] Fetching product info for ID: "${productId}"`);
         const productResult = await this.searchConnector.getProductById(productId);
+        console.log(`[PURCHASE_AGENT] Product result:`, productResult);
+        
         if (productResult.success) {
           productInfo = productResult.document;
+          console.log(`[PURCHASE_AGENT] Product info loaded:`, productInfo?.product_name);
+        } else {
+          console.log(`[PURCHASE_AGENT] Failed to load product info:`, productResult.error);
         }
+      } else {
+        console.log(`[PURCHASE_AGENT] No productId provided`);
       }
 
-      // Search for purchase benefits
-      const searchQuery = userMessage || '구매 장점 혜택';
+      // Search for purchase benefits (use safe query)
+      const searchQuery = '구매 장점 혜택';
       const purchaseInfoResult = await this.searchConnector.searchPurchaseInfo(searchQuery);
       
       // Build context for response generation with full conversation history
@@ -100,10 +113,17 @@ class PurchaseAgent extends BaseAgent {
 
       // Generate response
       const systemPrompt = this.getSystemPrompt(productInfo) + contextInfo;
+      console.log(`[PURCHASE_AGENT] Final system prompt: "${systemPrompt}"`);
+      console.log(`[PURCHASE_AGENT] Messages sent to AI:`, JSON.stringify(messages, null, 2));
       const response = await this.generateResponse(messages, systemPrompt, 0.8);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to generate response');
+      }
+
+      // 빈 응답 처리
+      if (!response.content || response.content.trim() === '') {
+        response.content = '애매하긴해';
       }
 
       return this.formatResponse(response.content, {
@@ -123,7 +143,8 @@ class PurchaseAgent extends BaseAgent {
     const context = { productId, conversationHistory: [] };
     
     // Generate initial purchase argument
-    const initialPrompt = '제품 구매의 핵심 장점을 3가지 제시하면서 구매를 권유하세요.';
+    const initialPrompt = '제품 구매의 핵심 장점을 정확히 2가지만 제시하면서 구매를 권유하세요. 3가지 이상 제시하지 마세요.';
+    console.log(`[PURCHASE_AGENT] Initial prompt: "${initialPrompt}"`);
     return await this.processMessage(context, initialPrompt);
   }
 
@@ -132,7 +153,7 @@ class PurchaseAgent extends BaseAgent {
     const rebuttalPrompt = `
 상대방 주장: ${opponentArgument}
 
-위 구독 주장에 대해 반박하고, 구매가 더 나은 이유를 데이터와 함께 제시하세요.
+위 구독 주장에 대해 반박하고, 구매가 더 나은 이유를 데이터와 함께 정확히 1문장으로만 제시하세요.
 구독의 숨겨진 비용이나 제약사항도 언급하세요.
 `;
     
